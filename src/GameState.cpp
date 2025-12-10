@@ -3,7 +3,9 @@
 #include <sstream>
 #include <iomanip>
 
-GameState::GameState() : currentState(MENU) {}
+GameState::GameState() : currentState(MENU) {
+    backgroundTexture.loadFromFile("assets/images/Portada.png");
+}
 
 GameState::State GameState::getCurrentState() const {
     return currentState;
@@ -14,9 +16,17 @@ void GameState::setState(State newState) {
 }
 
 void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
+    // Dibujar imagen de fondo
+    backgroundSprite.setTexture(backgroundTexture);
+    backgroundSprite.setScale(
+        static_cast<float>(window.getSize().x) / backgroundSprite.getLocalBounds().width,
+        static_cast<float>(window.getSize().y) / backgroundSprite.getLocalBounds().height
+    );
+    window.draw(backgroundSprite);
+
     // Fondo semi-transparente
     sf::RectangleShape background(sf::Vector2f(window.getSize().x, window.getSize().y));
-    background.setFillColor(sf::Color(0, 0, 0, 200));
+    background.setFillColor(sf::Color(0, 0, 0, 150)); // Reducir opacidad para ver mejor la imagen
     window.draw(background);
     
     // Título del juego
