@@ -2,8 +2,6 @@
 #include <SFML/Graphics.hpp>
 #include "../include/Tablero.hpp"
 #include "../include/Enemigo.hpp"
-#include "../include/GameState.hpp"
-#include "../include/AudioManager.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -12,60 +10,26 @@ int COLUMNAS = 40;
 int MINAS = 320;
 float CELDA_SIZE = 32.0f;
 float SIDEBAR_WIDTH = 200.0f;
-bool marcarFilaUsado = false;
-bool detectorMinasUsado = false;
-bool paralizanteUsado = false;
-int ultimaCasillaContadaBomba = 0;
-
-// Función para reiniciar el juego
-void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, bool& juegoIniciado, 
-                    bool& marcarFilaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, 
-                    int& ultimaCasillaContadaBomba, float& tiempoJuego) {
-    delete tablero;
-    delete enemigo;
-    tablero = new Tablero(FILAS, COLUMNAS, MINAS);
-    enemigo = new Enemigo(FILAS, COLUMNAS);
-    juegoIniciado = false;
-    marcarFilaUsado = false;
-    detectorMinasUsado = false;
-    paralizanteUsado = false;
-    ultimaCasillaContadaBomba = 0;
-    tiempoJuego = 0.0f;
-    std::cout << "Juego reiniciado" << std::endl;
-}
+bool marcarFilaUsado = false;  // Control de uso del poder
+bool detectorMinasUsado = false;  // Control de uso del detector
+bool paralizanteUsado = false;  // Control de uso del paralizante
+int ultimaCasillaContadaBomba = 0;  // Rastrear el último punto donde se creó bomba
 
 int main()
 {
     std::cout << "Creando tablero con: " << FILAS << " x " << COLUMNAS << " casillas, " << MINAS << " minas" << std::endl;
-    sf::RenderWindow window(sf::VideoMode((COLUMNAS * CELDA_SIZE) + SIDEBAR_WIDTH, FILAS * CELDA_SIZE), "Buscaplagas");
+    sf::RenderWindow window(sf::VideoMode((COLUMNAS * CELDA_SIZE) + SIDEBAR_WIDTH, FILAS * CELDA_SIZE), "Buscaminas");
     std::cout << "Tamaño ventana: " << (int)((COLUMNAS * CELDA_SIZE) + SIDEBAR_WIDTH) << " x " << (int)(FILAS * CELDA_SIZE) << std::endl;
+    Tablero tablero(FILAS, COLUMNAS, MINAS);
     
-    // Usar punteros para poder reiniciar
-    Tablero* tablero = new Tablero(FILAS, COLUMNAS, MINAS);
-    Enemigo* enemigo = new Enemigo(FILAS, COLUMNAS);
+    // Crear enemigo en uno de los lados del tablero
+    Enemigo enemigo(FILAS, COLUMNAS);
     
-    // GameState y AudioManager
-    GameState gameState;
-    AudioManager& audio = AudioManager::getInstance();
-    
-    // Cargar fuente
-    sf::Font font;
-    font.loadFromFile("assets/fonts/Minecraft.ttf");
-    
-    // Intentar cargar audio (opcional, el juego funcionará sin audio)
-    audio.loadSound("explosion", "assets/sounds/explosion.wav");
-    audio.loadSound("victory", "assets/sounds/victory.wav");
-    audio.loadSound("power", "assets/sounds/power_use.wav");
-    audio.loadSound("enemy_hit", "assets/sounds/enemy_hit.wav");
-    audio.loadMusic("background", "assets/music/background.ogg");
-    
-    // Reloj para deltaTime y tiempo de juego
+    // Reloj para deltaTime
     sf::Clock clock;
-    float tiempoJuego = 0.0f;
     
-    // Control de si el juego ha iniciado
+    // Control de si el juego ha iniciado (después del primer clic)
     bool juegoIniciado = false;
-    std::string razonGameOver = "";
 
     while (window.isOpen())
     {
@@ -75,65 +39,26 @@ int main()
             // Verificar si se ha cerrado la ventana
             if (event.type == sf::Event::Closed)
                 window.close();
-            
-            // Manejo de estados del juego
-            if (gameState.getCurrentState() == GameState::MENU) {
-                if (gameState.handleMenuInput(event, window)) {
-                    if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
-                    }
-                }
-                continue;
-            }
-            
-            if (gameState.getCurrentState() == GameState::INSTRUCTIONS) {
-                gameState.handleInstructionsInput(event);
-                continue;
-            }
-            
-            if (gameState.getCurrentState() == GameState::GAME_OVER) {
-                if (gameState.handleGameOverInput(event)) {
-                    if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
-                    }
-                }
-                continue;
-            }
-            
-            if (gameState.getCurrentState() == GameState::VICTORY) {
-                if (gameState.handleVictoryInput(event)) {
-                    if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
-                    }
-                }
-                continue;
-            }
-            
-            // Manejo de mouse para descubrir o marcar celdas (solo en estado PLAYING)
+            // Manejo de mouse para descubrir o marcar celdas
             if (event.type == sf::Event::MouseButtonPressed) {
                 int x = event.mouseButton.x / CELDA_SIZE;
                 int y = event.mouseButton.y / CELDA_SIZE;
                 if (x >= 0 && x < COLUMNAS && y >= 0 && y < FILAS) {
-                    juegoIniciado = true;
+                    juegoIniciado = true;  // Marcar que el juego ha comenzado
                     if (event.mouseButton.button == sf::Mouse::Left)
-                        tablero->descubrir(y, x);
+                        tablero.descubrir(y, x);
                     else if (event.mouseButton.button == sf::Mouse::Right)
-                        tablero->marcar(y, x);
+                        tablero.marcar(y, x);
                 }
             }
-            
             // Poder: Marcar todas las minas de una fila con la tecla R
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::R) {
                     if (!marcarFilaUsado) {
                         int mouseY = sf::Mouse::getPosition(window).y / CELDA_SIZE;
                         if (mouseY >= 0 && mouseY < FILAS) {
-                            tablero->marcarFilaDeMinas(mouseY);
+                            tablero.marcarFilaDeMinas(mouseY);
                             marcarFilaUsado = true;
-                            audio.playSound("power");
                             std::cout << "Poder activado: Se marcaron todas las minas de la fila " << mouseY << std::endl;
                         }
                     } else {
@@ -142,9 +67,8 @@ int main()
                 }
                 // Poder: Marcar una mina al azar con la tecla D
                 if (event.key.code == sf::Keyboard::D) {
-                    if (tablero->getUsosDetectorMinas() > 0) {
-                        tablero->marcarMinaAlAzar();
-                        audio.playSound("power");
+                    if (tablero.getUsosDetectorMinas() > 0) {
+                        tablero.marcarMinaAlAzar();
                     } else {
                         std::cout << "No tienes usos del detector de minas." << std::endl;
                     }
@@ -152,9 +76,8 @@ int main()
                 // Poder: Paralizar enemigo con la tecla P
                 if (event.key.code == sf::Keyboard::P) {
                     if (!paralizanteUsado) {
-                        enemigo->paralizarTemporalmente(30.0f);
+                        enemigo.paralizarTemporalmente(30.0f);
                         paralizanteUsado = true;
-                        audio.playSound("power");
                         std::cout << "¡ENEMIGO PARALIZADO POR 30 SEGUNDOS!" << std::endl;
                     } else {
                         std::cout << "El poder 'Paralizante' ya fue usado." << std::endl;
@@ -169,23 +92,18 @@ int main()
         // Obtener deltaTime
         float deltaTime = clock.restart().asSeconds();
         
-        // Solo actualizar tiempo si está jugando
-        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
-            tiempoJuego += deltaTime;
-        }
-        
         // Actualizar enemigo
         // Primero, crear vector de estados de celdas para el enemigo
         std::vector<std::vector<int>> estadoCeldas(FILAS, std::vector<int>(COLUMNAS));
         for (int i = 0; i < FILAS; ++i) {
             for (int j = 0; j < COLUMNAS; ++j) {
-                const Celda& celda = tablero->getCelda(i, j);
+                const Celda& celda = tablero.getCelda(i, j);
                 if (celda.getEstado() == Celda::Oculta) {
-                    estadoCeldas[i][j] = 0;
+                    estadoCeldas[i][j] = 0;  // Oculta
                 } else if (celda.getEstado() == Celda::Descubierta) {
-                    estadoCeldas[i][j] = 1;
+                    estadoCeldas[i][j] = 1;  // Descubierta
                 } else {
-                    estadoCeldas[i][j] = 2;
+                    estadoCeldas[i][j] = 2;  // Marcada
                 }
             }
         }
@@ -200,23 +118,14 @@ int main()
         colRaton = std::max(0, std::min(colRaton, COLUMNAS - 1));
         
         // Actualizar enemigo (solo si el juego ha iniciado)
-        enemigo->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);
+        enemigo.actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);
         
         // Verificar si el enemigo está en una casilla descubierta y teletransportarlo
-        enemigo->verificarYTeletransportar(estadoCeldas);
-        
-        // Detectar colisión enemigo-jugador
-        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
-            if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
-                razonGameOver = "¡El enemigo te alcanzó!";
-                gameState.setState(GameState::GAME_OVER);
-                audio.playSound("enemy_hit");
-            }
-        }
+        enemigo.verificarYTeletransportar(estadoCeldas);
         
         // Obtener posición nueva y casillas actualizadas
-        auto posNueva = enemigo->obtenerPosicion();
-        int casillasAhora = enemigo->getCasillasRecorridas();
+        auto posNueva = enemigo.obtenerPosicion();
+        int casillasAhora = enemigo.getCasillasRecorridas();
         
         // Debug: mostrar casillas recorridas cada segundo
         static float tiempoDebug = 0;
@@ -230,11 +139,12 @@ int main()
         if (casillasAhora > ultimaCasillaContadaBomba && (casillasAhora % 5 == 0)) {
             ultimaCasillaContadaBomba = casillasAhora;
             
-            int filaEnemigo = enemigo->getFila();
-            int colEnemigo = enemigo->getColumna();
+            // Poner bomba en la celda actual del enemigo si está oculta
+            int filaEnemigo = enemigo.getFila();
+            int colEnemigo = enemigo.getColumna();
             
             if (estadoCeldas[filaEnemigo][colEnemigo] == 0) {
-                tablero->crearBombaTemporalEnCelda(filaEnemigo, colEnemigo);
+                tablero.crearBombaTemporalEnCelda(filaEnemigo, colEnemigo);
                 std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posición (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
             } else {
                 std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creó bomba" << std::endl;
@@ -242,26 +152,15 @@ int main()
         }
         
         // Actualizar bombas
-        tablero->actualizarBombas(deltaTime);
-        
-        // Verificar fin del juego
-        if (gameState.getCurrentState() == GameState::PLAYING && tablero->esFinDelJuego()) {
-            if (tablero->esVictoria()) {
-                gameState.setState(GameState::VICTORY);
-                audio.playSound("victory");
-            } else {
-                razonGameOver = "¡Pisaste una plaga!";
-                gameState.setState(GameState::GAME_OVER);
-                audio.playSound("explosion");
-            }
-        }
+        tablero.actualizarBombas(deltaTime);
         
         // Dibujar el tablero
-        tablero->dibujar(window, CELDA_SIZE);
+        tablero.dibujar(window, CELDA_SIZE);
         
         // Dibujar bombas temporales con efecto visual
-        auto posBombas = tablero->obtenerPosicionesBombas();
+        auto posBombas = tablero.obtenerPosicionesBombas();
         for (const auto& bomba : posBombas) {
+            // Dibujar bomba como un cuadrado parpadeante amarillo/rojo
             sf::RectangleShape bombaDibujo(sf::Vector2f(CELDA_SIZE * 0.6f, CELDA_SIZE * 0.6f));
             bombaDibujo.setPosition(bomba.second * CELDA_SIZE + CELDA_SIZE * 0.2f, 
                                    bomba.first * CELDA_SIZE + CELDA_SIZE * 0.2f);
@@ -272,7 +171,7 @@ int main()
         }
         
         // Dibujar enemigo
-        enemigo->dibujar(window, CELDA_SIZE);
+        enemigo.dibujar(window, CELDA_SIZE);
         
         // Dibujar barra lateral con poderes
         float boardWidth = COLUMNAS * CELDA_SIZE;
@@ -282,6 +181,10 @@ int main()
         sidebar.setPosition(boardWidth, 0);
         sidebar.setFillColor(sf::Color(50, 50, 50));
         window.draw(sidebar);
+        
+        // Cargar fuente para los poderes
+        sf::Font font;
+        font.loadFromFile("assets/fonts/Minecraft.ttf");
         
         // Título "PODERES"
         sf::Text titleText("PODERES", font, 20);
@@ -293,10 +196,11 @@ int main()
         sf::RectangleShape powerButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
         powerButton.setPosition(boardWidth + 10, 80);
         
+        // Cambiar color según si fue usado
         if (marcarFilaUsado) {
-            powerButton.setFillColor(sf::Color(200, 100, 100));
+            powerButton.setFillColor(sf::Color(200, 100, 100));  // Rojo oscuro
         } else {
-            powerButton.setFillColor(sf::Color(100, 150, 255));
+            powerButton.setFillColor(sf::Color(100, 150, 255));  // Azul
         }
         
         powerButton.setOutlineColor(sf::Color::White);
@@ -312,10 +216,11 @@ int main()
         sf::RectangleShape antidotoButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
         antidotoButton.setPosition(boardWidth + 10, 160);
         
-        if (!tablero->tieneAntidoto()) {
-            antidotoButton.setFillColor(sf::Color(200, 100, 100));
+        // Cambiar color según si fue usado
+        if (!tablero.tieneAntidoto()) {
+            antidotoButton.setFillColor(sf::Color(200, 100, 100));  // Rojo oscuro
         } else {
-            antidotoButton.setFillColor(sf::Color(100, 255, 100));
+            antidotoButton.setFillColor(sf::Color(100, 255, 100));  // Verde
         }
         
         antidotoButton.setOutlineColor(sf::Color::White);
@@ -331,17 +236,19 @@ int main()
         sf::RectangleShape detectorButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
         detectorButton.setPosition(boardWidth + 10, 240);
         
-        if (tablero->getUsosDetectorMinas() <= 0) {
-            detectorButton.setFillColor(sf::Color(200, 100, 100));
+        // Cambiar color según si tiene usos
+        if (tablero.getUsosDetectorMinas() <= 0) {
+            detectorButton.setFillColor(sf::Color(200, 100, 100));  // Rojo oscuro
         } else {
-            detectorButton.setFillColor(sf::Color(255, 200, 100));
+            detectorButton.setFillColor(sf::Color(255, 200, 100));  // Naranja
         }
         
         detectorButton.setOutlineColor(sf::Color::White);
         detectorButton.setOutlineThickness(2);
         window.draw(detectorButton);
         
-        std::string detectorInfo = "Detector Mina\n(Presiona D)\n(" + std::to_string(tablero->getUsosDetectorMinas()) + " usos)";
+        // Texto del detector con usos
+        std::string detectorInfo = "Detector Mina\n(Presiona D)\n(" + std::to_string(tablero.getUsosDetectorMinas()) + " usos)";
         sf::Text detectorText(detectorInfo, font, 12);
         detectorText.setFillColor(sf::Color::White);
         detectorText.setPosition(boardWidth + 15, 250);
@@ -351,10 +258,11 @@ int main()
         sf::RectangleShape paralizanteButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
         paralizanteButton.setPosition(boardWidth + 10, 320);
         
+        // Cambiar color según si fue usado
         if (paralizanteUsado) {
-            paralizanteButton.setFillColor(sf::Color(200, 100, 100));
+            paralizanteButton.setFillColor(sf::Color(200, 100, 100));  // Rojo oscuro
         } else {
-            paralizanteButton.setFillColor(sf::Color(150, 100, 255));
+            paralizanteButton.setFillColor(sf::Color(150, 100, 255));  // Púrpura
         }
         
         paralizanteButton.setOutlineColor(sf::Color::White);
@@ -365,31 +273,10 @@ int main()
         paralizanteText.setFillColor(sf::Color::White);
         paralizanteText.setPosition(boardWidth + 15, 335);
         window.draw(paralizanteText);
-        
-        // Dibujar indicador de proximidad si está jugando
-        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
-            gameState.drawProximityIndicator(window, enemigo->getFila(), enemigo->getColumna(), 
-                                            filaRaton, colRaton, CELDA_SIZE, font);
-        }
-        
-        // Dibujar pantallas según estado
-        if (gameState.getCurrentState() == GameState::MENU) {
-            gameState.drawMenu(window, font);
-        } else if (gameState.getCurrentState() == GameState::INSTRUCTIONS) {
-            gameState.drawInstructions(window, font);
-        } else if (gameState.getCurrentState() == GameState::GAME_OVER) {
-            gameState.drawGameOver(window, font, razonGameOver);
-        } else if (gameState.getCurrentState() == GameState::VICTORY) {
-            gameState.drawVictory(window, font, tiempoJuego);
-        }
 
         // Mostrar la ventana
         window.display();
     }
-    
-    // Limpiar memoria
-    delete tablero;
-    delete enemigo;
 
     return 0;
 }

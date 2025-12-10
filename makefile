@@ -10,8 +10,8 @@ CPP_FILES := $(filter-out $(SRC_DIR)/Tablero.cpp $(SRC_DIR)/Enemigo.cpp,$(wildca
 # Generar los nombres de los archivos .exe en el directorio de destino
 EXE_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.exe,$(CPP_FILES))
 
-# Regla especial para 00_Ventana que necesita Tablero.cpp y Enemigo.cpp
-$(BIN_DIR)/00_Ventana.exe: $(SRC_DIR)/00_Ventana.cpp $(SRC_DIR)/Tablero.cpp $(SRC_DIR)/Enemigo.cpp
+# Regla especial para 00_Ventana que necesita Tablero.cpp, Enemigo.cpp, GameState.cpp y AudioManager.cpp
+$(BIN_DIR)/00_Ventana.exe: $(SRC_DIR)/00_Ventana.cpp $(SRC_DIR)/Tablero.cpp $(SRC_DIR)/Enemigo.cpp $(SRC_DIR)/GameState.cpp $(SRC_DIR)/AudioManager.cpp
 	g++ $^ -o $@ $(SFML) -Iinclude
 
 # Regla para compilar cada archivo .cpp y generar el archivo .exe correspondiente
