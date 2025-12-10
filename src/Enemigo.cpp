@@ -4,8 +4,9 @@
 #include <ctime>
 #include <algorithm>
 #include <climits>
+#include <iostream>
 
-Enemigo::Enemigo(int filas, int columnas)
+Enemigo::Enemigo(int filas, int columnas, const std::string& texturePath)
     : filas(filas), columnas(columnas), 
       fila(0), columna(0),
       filaDestino(0), columnaDestino(0),
@@ -13,9 +14,19 @@ Enemigo::Enemigo(int filas, int columnas)
       casillasRecorridas(0),
       pasosEnDireccion(0),
       tiempoParalizado(0.0f),
-      direccionActual(Direccion::DERECHA) {
+      direccionActual(Direccion::DERECHA),
+      texturasCargadas(false) {
     // Generar posición inicial en uno de los lados del tablero
     generarPosicionInicial(filas, columnas);
+    
+    // Cargar textura de la plaga
+    if (textura.loadFromFile(texturePath)) {
+        sprite.setTexture(textura);
+        texturasCargadas = true;
+        std::cout << "Textura de plaga cargada correctamente: " << texturePath << std::endl;
+    } else {
+        std::cerr << "Error: No se pudo cargar " << texturePath << std::endl;
+    }
 }
 
 void Enemigo::generarPosicionInicial(int f, int c) {
@@ -164,20 +175,42 @@ void Enemigo::verificarYTeletransportar(const std::vector<std::vector<int>>& est
 }
 
 void Enemigo::dibujar(sf::RenderWindow& window, float cellSize) const {
-    // Dibujar enemigo como un círculo rojo dentro de la celda
-    sf::CircleShape enemigo(cellSize / 3);
-    enemigo.setFillColor(sf::Color::Red);
-    enemigo.setPosition(columna * cellSize + cellSize / 3, fila * cellSize + cellSize / 3);
-    window.draw(enemigo);
-    
-    // Agregar ojos para más detalle
-    sf::CircleShape ojo(cellSize / 8);
-    ojo.setFillColor(sf::Color::White);
-    ojo.setPosition(columna * cellSize + cellSize / 4, fila * cellSize + cellSize / 4);
-    window.draw(ojo);
-    
-    ojo.setPosition(columna * cellSize + cellSize * 0.55f, fila * cellSize + cellSize / 4);
-    window.draw(ojo);
+    if (texturasCargadas) {
+        // Dibujar sprite de la plaga
+        // Calcular escala para que la imagen se ajuste a la celda
+        sf::Vector2u textureSize = textura.getSize();
+        float scaleX = cellSize / textureSize.x;
+        float scaleY = cellSize / textureSize.y;
+        
+        // Usar la escala más pequeña para mantener proporciones
+        float scale = std::min(scaleX, scaleY) * 1.6f; // 1.6 para hacer la plaga más grande
+        
+        sprite.setScale(scale, scale);
+        sprite.setPosition(columna * cellSize, fila * cellSize);
+        
+        // Centrar el sprite en la celda
+        sf::FloatRect bounds = sprite.getGlobalBounds();
+        float offsetX = (cellSize - bounds.width) / 2;
+        float offsetY = (cellSize - bounds.height) / 2;
+        sprite.setPosition(columna * cellSize + offsetX, fila * cellSize + offsetY);
+        
+        window.draw(sprite);
+    } else {
+        // Fallback: Dibujar enemigo como un círculo rojo si no se cargó la textura
+        sf::CircleShape enemigo(cellSize / 3);
+        enemigo.setFillColor(sf::Color::Red);
+        enemigo.setPosition(columna * cellSize + cellSize / 3, fila * cellSize + cellSize / 3);
+        window.draw(enemigo);
+        
+        // Agregar ojos para más detalle
+        sf::CircleShape ojo(cellSize / 8);
+        ojo.setFillColor(sf::Color::White);
+        ojo.setPosition(columna * cellSize + cellSize / 4, fila * cellSize + cellSize / 4);
+        window.draw(ojo);
+        
+        ojo.setPosition(columna * cellSize + cellSize * 0.55f, fila * cellSize + cellSize / 4);
+        window.draw(ojo);
+    }
 }
 
 int Enemigo::getFila() const {

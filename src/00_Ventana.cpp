@@ -15,21 +15,25 @@ float SIDEBAR_WIDTH = 200.0f;
 bool marcarFilaUsado = false;
 bool detectorMinasUsado = false;
 bool paralizanteUsado = false;
-int ultimaCasillaContadaBomba = 0;
+int ultimaCasillaContadaBomba = 0;  // Rastrear el último punto donde se creó bomba
+int ultimaCasillaContadaBomba2 = 0;  // Rastrear bombas del segundo enemigo
 
 // Función para reiniciar el juego
-void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, bool& juegoIniciado, 
+void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bool& juegoIniciado, 
                     bool& marcarFilaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, 
-                    int& ultimaCasillaContadaBomba, float& tiempoJuego) {
+                    int& ultimaCasillaContadaBomba, int& ultimaCasillaContadaBomba2, float& tiempoJuego) {
     delete tablero;
     delete enemigo;
+    delete enemigo2;
     tablero = new Tablero(FILAS, COLUMNAS, MINAS);
     enemigo = new Enemigo(FILAS, COLUMNAS);
+    enemigo2 = new Enemigo(FILAS, COLUMNAS, "assets/images/plaga2.png");
     juegoIniciado = false;
     marcarFilaUsado = false;
     detectorMinasUsado = false;
     paralizanteUsado = false;
     ultimaCasillaContadaBomba = 0;
+    ultimaCasillaContadaBomba2 = 0;
     tiempoJuego = 0.0f;
     std::cout << "Juego reiniciado" << std::endl;
 }
@@ -43,6 +47,7 @@ int main()
     // Usar punteros para poder reiniciar
     Tablero* tablero = new Tablero(FILAS, COLUMNAS, MINAS);
     Enemigo* enemigo = new Enemigo(FILAS, COLUMNAS);
+    Enemigo* enemigo2 = new Enemigo(FILAS, COLUMNAS, "assets/images/plaga2.png");  // Segundo enemigo independiente
     
     // GameState y AudioManager
     GameState gameState;
@@ -80,8 +85,8 @@ int main()
             if (gameState.getCurrentState() == GameState::MENU) {
                 if (gameState.handleMenuInput(event, window)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
+                        reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
+                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
                     }
                 }
                 continue;
@@ -95,8 +100,8 @@ int main()
             if (gameState.getCurrentState() == GameState::GAME_OVER) {
                 if (gameState.handleGameOverInput(event)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
+                        reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
+                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
                     }
                 }
                 continue;
@@ -105,8 +110,8 @@ int main()
             if (gameState.getCurrentState() == GameState::VICTORY) {
                 if (gameState.handleVictoryInput(event)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, tiempoJuego);
+                        reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
+                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
                     }
                 }
                 continue;
@@ -201,14 +206,22 @@ int main()
         
         // Actualizar enemigo (solo si el juego ha iniciado)
         enemigo->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);
+        enemigo2->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);  // Segundo enemigo
         
         // Verificar si el enemigo está en una casilla descubierta y teletransportarlo
         enemigo->verificarYTeletransportar(estadoCeldas);
+        enemigo2->verificarYTeletransportar(estadoCeldas);  // Segundo enemigo
         
         // Detectar colisión enemigo-jugador
         if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
             if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
                 razonGameOver = "¡El enemigo te alcanzó!";
+                gameState.setState(GameState::GAME_OVER);
+                audio.playSound("enemy_hit");
+            }
+            // Colisión con segundo enemigo
+            if (gameState.checkEnemyPlayerCollision(enemigo2->getFila(), enemigo2->getColumna(), filaRaton, colRaton)) {
+                razonGameOver = "¡El enemigo 2 te alcanzó!";
                 gameState.setState(GameState::GAME_OVER);
                 audio.playSound("enemy_hit");
             }
@@ -238,6 +251,22 @@ int main()
                 std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posición (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
             } else {
                 std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creó bomba" << std::endl;
+            }
+        }
+        
+        // Crear bombas para el segundo enemigo
+        int casillasAhora2 = enemigo2->getCasillasRecorridas();
+        if (casillasAhora2 > ultimaCasillaContadaBomba2 && (casillasAhora2 % 5 == 0)) {
+            ultimaCasillaContadaBomba2 = casillasAhora2;
+            
+            int filaEnemigo2 = enemigo2->getFila();
+            int colEnemigo2 = enemigo2->getColumna();
+            
+            if (estadoCeldas[filaEnemigo2][colEnemigo2] == 0) {
+                tablero->crearBombaTemporalEnCelda(filaEnemigo2, colEnemigo2);
+                std::cout << "✓ Bomba 2 creada en casilla " << casillasAhora2 << " en posición (" << filaEnemigo2 << ", " << colEnemigo2 << ")" << std::endl;
+            } else {
+                std::cout << "✗ Celda revelada en casilla " << casillasAhora2 << ", no se creó bomba 2" << std::endl;
             }
         }
         
@@ -273,6 +302,7 @@ int main()
         
         // Dibujar enemigo
         enemigo->dibujar(window, CELDA_SIZE);
+        enemigo2->dibujar(window, CELDA_SIZE);  // Segundo enemigo
         
         // Dibujar barra lateral con poderes
         float boardWidth = COLUMNAS * CELDA_SIZE;
@@ -366,10 +396,20 @@ int main()
         paralizanteText.setPosition(boardWidth + 15, 335);
         window.draw(paralizanteText);
         
-        // Dibujar indicador de proximidad si está jugando
+        // Dibujar indicador de proximidad si está jugando (mostrar el enemigo más cercano)
         if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
-            gameState.drawProximityIndicator(window, enemigo->getFila(), enemigo->getColumna(), 
-                                            filaRaton, colRaton, CELDA_SIZE, font);
+            // Calcular distancia a cada enemigo
+            int distancia1 = std::abs(enemigo->getFila() - filaRaton) + std::abs(enemigo->getColumna() - colRaton);
+            int distancia2 = std::abs(enemigo2->getFila() - filaRaton) + std::abs(enemigo2->getColumna() - colRaton);
+            
+            // Determinar cuál está más cerca
+            if (distancia1 <= distancia2) {
+                gameState.drawProximityIndicator(window, enemigo->getFila(), enemigo->getColumna(), 
+                                                filaRaton, colRaton, CELDA_SIZE, font);
+            } else {
+                gameState.drawProximityIndicator(window, enemigo2->getFila(), enemigo2->getColumna(), 
+                                                filaRaton, colRaton, CELDA_SIZE, font);
+            }
         }
         
         // Dibujar pantallas según estado

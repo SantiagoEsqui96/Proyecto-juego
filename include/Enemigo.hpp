@@ -5,7 +5,7 @@
 
 class Enemigo {
 public:
-    Enemigo(int filas, int columnas);
+    Enemigo(int filas, int columnas, const std::string& texturePath = "assets/images/plaga1.png");
     
     void actualizar(float deltaTime, const std::vector<std::vector<int>>& estadoCeldas, bool juegoIniciado, int filaRaton, int colRaton);
     void dibujar(sf::RenderWindow& window, float cellSize) const;
@@ -36,4 +36,9 @@ private:
     Direccion calcularDireccionHacia(int filaDestino, int colDestino);
     void elegirDireccionAleatoria();
     void generarPosicionInicial(int f, int c);
+    
+    // Textura y sprite para la imagen del enemigo
+    sf::Texture textura;
+    mutable sf::Sprite sprite;  // mutable para poder modificarlo en dibujar()
+    bool texturasCargadas;
 };
