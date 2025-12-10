@@ -78,6 +78,16 @@ int main()
     // Cargar música del menú
     audio.loadMusic("menu", "assets/music/enchanted_tiki_86.mp3");
     
+    // Cargar texturas de iconos
+    sf::Texture textureMarcarFila, textureAntidoto, textureDetector;
+    textureMarcarFila.loadFromFile("assets/images/marcar_fila1.png");
+    textureAntidoto.loadFromFile("assets/images/antidoto1.png");
+    textureDetector.loadFromFile("assets/images/detector1.png");
+
+    sf::Sprite spriteMarcarFila(textureMarcarFila);
+    sf::Sprite spriteAntidoto(textureAntidoto);
+    sf::Sprite spriteDetector(textureDetector);
+
     // Reloj para deltaTime y tiempo de juego
     sf::Clock clock;
     float tiempoJuego = 0.0f;
@@ -399,8 +409,13 @@ int main()
         
         sf::Text powerText("Marcar Fila\n(Presiona R)", font, 14);
         powerText.setFillColor(sf::Color::White);
-        powerText.setPosition(boardWidth + 15, 95);
+        powerText.setPosition(boardWidth + 60, 95); // Movido a la derecha
         window.draw(powerText);
+
+        // Icono Marcar Fila
+        spriteMarcarFila.setPosition(boardWidth + 15, 85);
+        spriteMarcarFila.setScale(40.0f / spriteMarcarFila.getLocalBounds().width, 40.0f / spriteMarcarFila.getLocalBounds().height);
+        window.draw(spriteMarcarFila);
         
         // Poder 2: Antídoto
         sf::RectangleShape antidotoButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
@@ -418,8 +433,13 @@ int main()
         
         sf::Text antidotoText("Antidoto\n(Automatico)", font, 14);
         antidotoText.setFillColor(sf::Color::White);
-        antidotoText.setPosition(boardWidth + 20, 175);
+        antidotoText.setPosition(boardWidth + 60, 175); // Movido a la derecha
         window.draw(antidotoText);
+
+        // Icono Antidoto
+        spriteAntidoto.setPosition(boardWidth + 5, 162);
+        spriteAntidoto.setScale(55.0f / spriteAntidoto.getLocalBounds().width, 55.0f / spriteAntidoto.getLocalBounds().height);
+        window.draw(spriteAntidoto);
         
         // Poder 3: Detector de Minas
         sf::RectangleShape detectorButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
@@ -438,8 +458,13 @@ int main()
         std::string detectorInfo = "Detector Mina\n(Presiona D)\n(" + std::to_string(tablero->getUsosDetectorMinas()) + " usos)";
         sf::Text detectorText(detectorInfo, font, 12);
         detectorText.setFillColor(sf::Color::White);
-        detectorText.setPosition(boardWidth + 15, 250);
+        detectorText.setPosition(boardWidth + 60, 250); // Movido a la derecha
         window.draw(detectorText);
+
+        // Icono Detector
+        spriteDetector.setPosition(boardWidth + 15, 245);
+        spriteDetector.setScale(40.0f / spriteDetector.getLocalBounds().width, 40.0f / spriteDetector.getLocalBounds().height);
+        window.draw(spriteDetector);
         
         // Poder 4: Paralizante (solo si enemigos están activos)
         if (enemigosActivos) {
