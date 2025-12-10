@@ -25,7 +25,7 @@ public:
         shape.setPosition(position);
         switch (estado) {
             case Oculta:
-                shape.setFillColor(sf::Color(200, 200, 200));
+                shape.setFillColor(sf::Color(34, 139, 34));  // Verde oscuro
                 break;
             case Descubierta:
                 shape.setFillColor(sf::Color::White);

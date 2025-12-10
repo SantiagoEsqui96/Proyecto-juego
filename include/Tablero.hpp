@@ -39,6 +39,7 @@ private:
     bool minasGeneradas;
     bool tieneAntidotoDisponible;
     int usosDetectorMinas;
+    sf::Texture texturaInsecto;
     
     // Sistema de bombas temporales
     std::vector<std::pair<int, int>> bombas;  // Posiciones de bombas

@@ -7,6 +7,8 @@
 Tablero::Tablero(int filas, int columnas, int minas)
     : filas(filas), columnas(columnas), minas(minas), finDelJuego(false), victoria(false), primerClick(true), minasGeneradas(false), tieneAntidotoDisponible(true), usosDetectorMinas(5) {
     celdas.resize(filas, std::vector<Celda>(columnas));
+    // Cargar textura del insecto
+    texturaInsecto.loadFromFile("assets/images/insecto.png");
 }
 
 void Tablero::descubrir(int fila, int columna) {
@@ -124,10 +126,12 @@ void Tablero::dibujar(sf::RenderWindow& window, float size) const {
             window.draw(celdas[i][j].getShape(size, pos));
             if (celdas[i][j].getEstado() == Celda::Descubierta) {
                 if (celdas[i][j].esMina()) {
-                    sf::CircleShape minaShape(size / 4);
-                    minaShape.setFillColor(sf::Color::Black);
-                    minaShape.setPosition(pos.x + size / 4, pos.y + size / 4);
-                    window.draw(minaShape);
+                    sf::Sprite spriteInsecto(texturaInsecto);
+                    spriteInsecto.setPosition(pos.x, pos.y);
+                    // Escalar el sprite para que quepa en la celda
+                    spriteInsecto.setScale(size / spriteInsecto.getLocalBounds().width, 
+                                          size / spriteInsecto.getLocalBounds().height);
+                    window.draw(spriteInsecto);
                 } else if (celdas[i][j].getMinasAlrededor() > 0) {
                     sf::Text text;
                     text.setFont(font);

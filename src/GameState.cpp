@@ -36,7 +36,7 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     
     // Botón Jugar
     sf::RectangleShape playButton(sf::Vector2f(300, 60));
-    playButton.setPosition((window.getSize().x - 300) / 2, 350);
+    playButton.setPosition((window.getSize().x - 300) / 2, 320);
     playButton.setFillColor(sf::Color(0, 150, 0));
     playButton.setOutlineColor(sf::Color::White);
     playButton.setOutlineThickness(3);
@@ -45,12 +45,28 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     sf::Text playText("JUGAR", font, 30);
     playText.setFillColor(sf::Color::White);
     sf::FloatRect playBounds = playText.getLocalBounds();
-    playText.setPosition((window.getSize().x - playBounds.width) / 2, 360);
+    playText.setPosition((window.getSize().x - playBounds.width) / 2, 330);
     window.draw(playText);
+    
+    // Botón Enemigos ON/OFF
+    sf::RectangleShape enemiesButton(sf::Vector2f(300, 60));
+    enemiesButton.setPosition((window.getSize().x - 300) / 2, 400);
+    enemiesButton.setFillColor(sf::Color(150, 100, 0));
+    enemiesButton.setOutlineColor(sf::Color::White);
+    enemiesButton.setOutlineThickness(3);
+    window.draw(enemiesButton);
+    
+    extern bool enemigosActivos;
+    std::string enemiesText = enemigosActivos ? "ENEMIGOS: ON" : "ENEMIGOS: OFF";
+    sf::Text enemiesLabel(enemiesText, font, 20);
+    enemiesLabel.setFillColor(sf::Color::White);
+    sf::FloatRect enemiesBounds = enemiesLabel.getLocalBounds();
+    enemiesLabel.setPosition((window.getSize().x - enemiesBounds.width) / 2, 413);
+    window.draw(enemiesLabel);
     
     // Botón Instrucciones
     sf::RectangleShape instructionsButton(sf::Vector2f(300, 60));
-    instructionsButton.setPosition((window.getSize().x - 300) / 2, 450);
+    instructionsButton.setPosition((window.getSize().x - 300) / 2, 480);
     instructionsButton.setFillColor(sf::Color(0, 100, 200));
     instructionsButton.setOutlineColor(sf::Color::White);
     instructionsButton.setOutlineThickness(3);
@@ -59,12 +75,12 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     sf::Text instructionsText("INSTRUCCIONES", font, 26);
     instructionsText.setFillColor(sf::Color::White);
     sf::FloatRect instrBounds = instructionsText.getLocalBounds();
-    instructionsText.setPosition((window.getSize().x - instrBounds.width) / 2, 460);
+    instructionsText.setPosition((window.getSize().x - instrBounds.width) / 2, 490);
     window.draw(instructionsText);
     
     // Botón Salir
     sf::RectangleShape exitButton(sf::Vector2f(300, 60));
-    exitButton.setPosition((window.getSize().x - 300) / 2, 550);
+    exitButton.setPosition((window.getSize().x - 300) / 2, 560);
     exitButton.setFillColor(sf::Color(150, 0, 0));
     exitButton.setOutlineColor(sf::Color::White);
     exitButton.setOutlineThickness(3);
@@ -73,7 +89,7 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     sf::Text exitText("SALIR", font, 30);
     exitText.setFillColor(sf::Color::White);
     sf::FloatRect exitBounds = exitText.getLocalBounds();
-    exitText.setPosition((window.getSize().x - exitBounds.width) / 2, 560);
+    exitText.setPosition((window.getSize().x - exitBounds.width) / 2, 570);
     window.draw(exitText);
 }
 
@@ -104,12 +120,17 @@ void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font)
         "R - Marcar Fila: Marca todas las plagas de una fila (1 uso)",
         "D - Detector: Marca una plaga al azar (5 usos)",
         "P - Paralizante: Paraliza al enemigo por 30 segundos (1 uso)",
+        "E - Escudo Ganador: Invulnerable a enemigos por 30s (1 uso SOLO PARA GANAR)",
         "Antidoto: Te salva automaticamente de 1 plaga (1 uso)",
+        "",
+        "NOTA IMPORTANTE:",
+        "Usa el Escudo Ganador solo para la victoria final. Los enemigos bloquean",
+        "las ultimas celdas, por eso necesitas el escudo para acabar de revelar todo",
         "",
         "PELIGROS:",
         "- El enemigo rojo te persigue y deja bombas cada 5 casillas",
         "- Las bombas duran 20 segundos (cuadrados amarillos)",
-        "- Si el enemigo te alcanza, pierdes",
+        "- Si el enemigo te alcanza, pierdes (a menos que tengas escudo)",
         "",
         "Presiona ESC para volver al menu"
     };
@@ -206,21 +227,29 @@ bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window) {
         
         // Botón Jugar
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
-            mouseY >= 350 && mouseY <= 410) {
+            mouseY >= 320 && mouseY <= 380) {
             setState(PLAYING);
+            return true;
+        }
+        
+        // Botón Enemigos ON/OFF
+        if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
+            mouseY >= 400 && mouseY <= 460) {
+            extern bool enemigosActivos;
+            enemigosActivos = !enemigosActivos;
             return true;
         }
         
         // Botón Instrucciones
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
-            mouseY >= 450 && mouseY <= 510) {
+            mouseY >= 480 && mouseY <= 540) {
             setState(INSTRUCTIONS);
             return true;
         }
         
         // Botón Salir
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
-            mouseY >= 550 && mouseY <= 610) {
+            mouseY >= 560 && mouseY <= 620) {
             window.close();
             return true;
         }
@@ -292,7 +321,7 @@ void GameState::drawProximityIndicator(sf::RenderWindow& window, int enemyRow, i
     
     // Indicador de proximidad
     sf::RectangleShape indicator(sf::Vector2f(180, 80));
-    indicator.setPosition(boardWidth + 10, 420);
+    indicator.setPosition(boardWidth + 10, 480);
     indicator.setFillColor(sf::Color(50, 50, 50));
     indicator.setOutlineColor(color);
     indicator.setOutlineThickness(3);
@@ -300,12 +329,12 @@ void GameState::drawProximityIndicator(sf::RenderWindow& window, int enemyRow, i
     
     sf::Text title("ENEMIGO", font, 16);
     title.setFillColor(sf::Color::White);
-    title.setPosition(boardWidth + 50, 430);
+    title.setPosition(boardWidth + 50, 490);
     window.draw(title);
     
     std::string distText = "Distancia: " + std::to_string(distance);
     sf::Text distanceText(distText, font, 14);
     distanceText.setFillColor(color);
-    distanceText.setPosition(boardWidth + 25, 460);
+    distanceText.setPosition(boardWidth + 25, 520);
     window.draw(distanceText);
 }

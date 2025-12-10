@@ -77,16 +77,22 @@ void Enemigo::actualizar(float deltaTime, const std::vector<std::vector<int>>& e
     if (tiempoMovimiento >= 1.5f) {
         tiempoMovimiento = 0.0f;
         
-        // Calcular dirección hacia el ratón
-        direccionActual = calcularDireccionHacia(filaRaton, colRaton);
+        // Probar todas las 4 direcciones y elegir la que más acerca al jugador
+        int mejorDistancia = INT_MAX;
+        Direccion mejorDireccion = Direccion::DERECHA;
+        std::vector<Direccion> direccionesValidas;
         
-        // Intentar moverse en la dirección actual
-        bool puedeMoverse = false;
-        for (int intentos = 0; intentos < 4 && !puedeMoverse; ++intentos) {
+        // Probar todas las direcciones
+        std::vector<Direccion> todasDirecciones = {
+            Direccion::ARRIBA, Direccion::ABAJO, 
+            Direccion::IZQUIERDA, Direccion::DERECHA
+        };
+        
+        for (Direccion dir : todasDirecciones) {
             int proximaFila = fila;
             int proximaColumna = columna;
             
-            switch (direccionActual) {
+            switch (dir) {
                 case Direccion::ARRIBA:
                     proximaFila = fila - 1;
                     break;
@@ -117,16 +123,57 @@ void Enemigo::actualizar(float deltaTime, const std::vector<std::vector<int>>& e
             // Solo evitar celdas descubierta (1), no marcadas ni ocultas
             int estadoCelda = estadoCeldas[proximaFila][proximaColumna];
             
-            if (estadoCelda == 1) {
-                // Celda descubierta: cambiar dirección e intentar otra
-                elegirDireccionAleatoria();
-                continue;
+            if (estadoCelda != 1) {  // Si no está descubierta, es válida
+                direccionesValidas.push_back(dir);
+                
+                // Calcular distancia a el jugador desde esta nueva posición
+                int difFila = filaRaton - proximaFila;
+                int difCol = colRaton - proximaColumna;
+                int distancia = abs(difFila) + abs(difCol);  // Distancia Manhattan
+                
+                if (distancia < mejorDistancia) {
+                    mejorDistancia = distancia;
+                    mejorDireccion = dir;
+                }
+            }
+        }
+        
+        // Moverse en la mejor dirección encontrada
+        if (!direccionesValidas.empty()) {
+            int proximaFila = fila;
+            int proximaColumna = columna;
+            
+            switch (mejorDireccion) {
+                case Direccion::ARRIBA:
+                    proximaFila = fila - 1;
+                    break;
+                case Direccion::ABAJO:
+                    proximaFila = fila + 1;
+                    break;
+                case Direccion::IZQUIERDA:
+                    proximaColumna = columna - 1;
+                    break;
+                case Direccion::DERECHA:
+                    proximaColumna = columna + 1;
+                    break;
             }
             
-            // Celda oculta (0) o marcada (2): se puede mover
-            puedeMoverse = true;
+            // Teletransportación en bordes
+            if (proximaFila < 0) {
+                proximaFila = filas - 1;
+            } else if (proximaFila >= filas) {
+                proximaFila = 0;
+            }
+            
+            if (proximaColumna < 0) {
+                proximaColumna = columnas - 1;
+            } else if (proximaColumna >= columnas) {
+                proximaColumna = 0;
+            }
+            
             fila = proximaFila;
             columna = proximaColumna;
+            direccionActual = mejorDireccion;
             casillasRecorridas++;
         }
     }

@@ -9,7 +9,7 @@ AudioManager& AudioManager::getInstance() {
 }
 
 bool AudioManager::loadMusic(const std::string& name, const std::string& filepath) {
-    if (!music.openFromFile(filepath)) {
+    if (!musics[name].openFromFile(filepath)) {
         std::cerr << "Error: No se pudo cargar la música: " << filepath << std::endl;
         return false;
     }
@@ -33,27 +33,52 @@ bool AudioManager::loadSound(const std::string& name, const std::string& filepat
 }
 
 void AudioManager::playMusic(const std::string& name, bool loop) {
-    music.setLoop(loop);
-    music.setVolume(musicVolume);
-    music.play();
-    std::cout << "Reproduciendo música: " << name << std::endl;
+    auto it = musics.find(name);
+    if (it != musics.end()) {
+        it->second.setLoop(loop);
+        it->second.setVolume(musicVolume);
+        it->second.play();
+        std::cout << "Reproduciendo música: " << name << std::endl;
+    } else {
+        std::cerr << "Error: Música no encontrada: " << name << std::endl;
+    }
 }
 
-void AudioManager::stopMusic() {
-    music.stop();
+void AudioManager::stopMusic(const std::string& name) {
+    if (name.empty()) {
+        // Detener todas las músicas
+        for (auto& pair : musics) {
+            pair.second.stop();
+        }
+    } else {
+        auto it = musics.find(name);
+        if (it != musics.end()) {
+            it->second.stop();
+        }
+    }
 }
 
 void AudioManager::pauseMusic() {
-    music.pause();
+    for (auto& pair : musics) {
+        if (pair.second.getStatus() == sf::Music::Playing) {
+            pair.second.pause();
+        }
+    }
 }
 
 void AudioManager::resumeMusic() {
-    music.play();
+    for (auto& pair : musics) {
+        if (pair.second.getStatus() == sf::Music::Paused) {
+            pair.second.play();
+        }
+    }
 }
 
 void AudioManager::setMusicVolume(float volume) {
     musicVolume = volume;
-    music.setVolume(musicVolume);
+    for (auto& pair : musics) {
+        pair.second.setVolume(musicVolume);
+    }
 }
 
 void AudioManager::playSound(const std::string& name) {
@@ -73,5 +98,10 @@ void AudioManager::setSoundVolume(float volume) {
 }
 
 bool AudioManager::isMusicPlaying() const {
-    return music.getStatus() == sf::Music::Playing;
+    for (const auto& pair : musics) {
+        if (pair.second.getStatus() == sf::Music::Playing) {
+            return true;
+        }
+    }
+    return false;
 }

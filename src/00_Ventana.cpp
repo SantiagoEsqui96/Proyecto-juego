@@ -9,19 +9,25 @@
 
 int FILAS = 40;
 int COLUMNAS = 40;
-int MINAS = 320;
-float CELDA_SIZE = 32.0f;
+int MINAS = 350;
+int CELDA_SIZE = 32.0f;
 float SIDEBAR_WIDTH = 200.0f;
 bool marcarFilaUsado = false;
 bool detectorMinasUsado = false;
 bool paralizanteUsado = false;
+bool escudoGanadorUsado = false;
+float tiempoEscudoGanador = 0.0f;
+bool musicaReproduciendo = false;
+bool musicaMenuReproduciendo = false;
+bool enemigosActivos = true;  // Variable para activar/desactivar enemigos
 int ultimaCasillaContadaBomba = 0;  // Rastrear el último punto donde se creó bomba
 int ultimaCasillaContadaBomba2 = 0;  // Rastrear bombas del segundo enemigo
 
 // Función para reiniciar el juego
 void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bool& juegoIniciado, 
-                    bool& marcarFilaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, 
-                    int& ultimaCasillaContadaBomba, int& ultimaCasillaContadaBomba2, float& tiempoJuego) {
+                    bool& marcarFilaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, bool& escudoGanadorUsado,
+                    int& ultimaCasillaContadaBomba, int& ultimaCasillaContadaBomba2, float& tiempoJuego, float& tiempoEscudoGanador,
+                    AudioManager& audio, bool& musicaReproduciendo, bool& musicaMenuReproduciendo) {
     delete tablero;
     delete enemigo;
     delete enemigo2;
@@ -32,9 +38,14 @@ void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bo
     marcarFilaUsado = false;
     detectorMinasUsado = false;
     paralizanteUsado = false;
+    escudoGanadorUsado = false;
+    tiempoEscudoGanador = 0.0f;
     ultimaCasillaContadaBomba = 0;
     ultimaCasillaContadaBomba2 = 0;
     tiempoJuego = 0.0f;
+    musicaReproduciendo = false;
+    musicaMenuReproduciendo = false;
+    audio.stopMusic();
     std::cout << "Juego reiniciado" << std::endl;
 }
 
@@ -62,7 +73,10 @@ int main()
     audio.loadSound("victory", "assets/sounds/victory.wav");
     audio.loadSound("power", "assets/sounds/power_use.wav");
     audio.loadSound("enemy_hit", "assets/sounds/enemy_hit.wav");
-    audio.loadMusic("background", "assets/music/background.ogg");
+    audio.loadSound("click_casilla", "assets/sounds/click_casilla_buena.wav");
+    audio.loadMusic("background", "assets/music/musica.ogg");
+    // Cargar música del menú
+    audio.loadMusic("menu", "assets/music/enchanted_tiki_86.mp3");
     
     // Reloj para deltaTime y tiempo de juego
     sf::Clock clock;
@@ -86,7 +100,7 @@ int main()
                 if (gameState.handleMenuInput(event, window)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
                         reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
+                                      detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
                     }
                 }
                 continue;
@@ -101,7 +115,7 @@ int main()
                 if (gameState.handleGameOverInput(event)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
                         reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
+                                      detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
                     }
                 }
                 continue;
@@ -111,7 +125,7 @@ int main()
                 if (gameState.handleVictoryInput(event)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
                         reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, 
-                                      detectorMinasUsado, paralizanteUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego);
+                                      detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
                     }
                 }
                 continue;
@@ -122,10 +136,18 @@ int main()
                 int x = event.mouseButton.x / CELDA_SIZE;
                 int y = event.mouseButton.y / CELDA_SIZE;
                 if (x >= 0 && x < COLUMNAS && y >= 0 && y < FILAS) {
-                    juegoIniciado = true;
-                    if (event.mouseButton.button == sf::Mouse::Left)
+                    if (!juegoIniciado) {
+                        juegoIniciado = true;
+                        // Reproducir música cuando comienza el juego
+                        if (!musicaReproduciendo) {
+                            audio.playMusic("background", true);
+                            musicaReproduciendo = true;
+                        }
+                    }
+                    if (event.mouseButton.button == sf::Mouse::Left) {
                         tablero->descubrir(y, x);
-                    else if (event.mouseButton.button == sf::Mouse::Right)
+                        audio.playSound("click_casilla");
+                    } else if (event.mouseButton.button == sf::Mouse::Right)
                         tablero->marcar(y, x);
                 }
             }
@@ -154,15 +176,27 @@ int main()
                         std::cout << "No tienes usos del detector de minas." << std::endl;
                     }
                 }
-                // Poder: Paralizar enemigo con la tecla P
-                if (event.key.code == sf::Keyboard::P) {
+                // Poder: Paralizar enemigo con la tecla P (solo si enemigos están activos)
+                if (event.key.code == sf::Keyboard::P && enemigosActivos) {
                     if (!paralizanteUsado) {
                         enemigo->paralizarTemporalmente(30.0f);
+                        enemigo2->paralizarTemporalmente(30.0f);
                         paralizanteUsado = true;
                         audio.playSound("power");
-                        std::cout << "¡ENEMIGO PARALIZADO POR 30 SEGUNDOS!" << std::endl;
+                        std::cout << "¡AMBOS ENEMIGOS PARALIZADOS POR 30 SEGUNDOS!" << std::endl;
                     } else {
                         std::cout << "El poder 'Paralizante' ya fue usado." << std::endl;
+                    }
+                }
+                // Poder: Escudo Ganador con la tecla E (solo si enemigos están activos)
+                if (event.key.code == sf::Keyboard::E && enemigosActivos) {
+                    if (!escudoGanadorUsado) {
+                        tiempoEscudoGanador = 30.0f;
+                        escudoGanadorUsado = true;
+                        audio.playSound("power");
+                        std::cout << "¡ESCUDO GANADOR ACTIVADO! Eres invulnerable a los enemigos por 30 segundos!" << std::endl;
+                    } else {
+                        std::cout << "El poder 'Escudo Ganador' ya fue usado." << std::endl;
                     }
                 }
             }
@@ -173,6 +207,21 @@ int main()
         
         // Obtener deltaTime
         float deltaTime = clock.restart().asSeconds();
+        
+        // Reproducir música del menú cuando no está jugando
+        if (gameState.getCurrentState() == GameState::MENU && !musicaMenuReproduciendo) {
+            audio.stopMusic("background");  // Detener solo la música de juego
+            audio.playMusic("menu", true);
+            musicaMenuReproduciendo = true;
+        }
+        
+        // Detener música del menú y cambiar a música de juego cuando comienza
+        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado && musicaMenuReproduciendo) {
+            audio.stopMusic("menu");  // Detener solo la música del menú
+            audio.playMusic("background", true);
+            musicaMenuReproduciendo = false;
+            musicaReproduciendo = true;
+        }
         
         // Solo actualizar tiempo si está jugando
         if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
@@ -204,26 +253,36 @@ int main()
         filaRaton = std::max(0, std::min(filaRaton, FILAS - 1));
         colRaton = std::max(0, std::min(colRaton, COLUMNAS - 1));
         
-        // Actualizar enemigo (solo si el juego ha iniciado)
-        enemigo->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);
-        enemigo2->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);  // Segundo enemigo
+        // Actualizar enemigo (solo si el juego ha iniciado y enemigos están activos)
+        if (enemigosActivos) {
+            enemigo->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);
+            enemigo2->actualizar(deltaTime, estadoCeldas, juegoIniciado, filaRaton, colRaton);  // Segundo enemigo
+            
+            // Verificar si el enemigo está en una casilla descubierta y teletransportarlo
+            enemigo->verificarYTeletransportar(estadoCeldas);
+            enemigo2->verificarYTeletransportar(estadoCeldas);  // Segundo enemigo
+        }
         
-        // Verificar si el enemigo está en una casilla descubierta y teletransportarlo
-        enemigo->verificarYTeletransportar(estadoCeldas);
-        enemigo2->verificarYTeletransportar(estadoCeldas);  // Segundo enemigo
+        // Actualizar tiempo del escudo ganador
+        if (tiempoEscudoGanador > 0.0f) {
+            tiempoEscudoGanador -= deltaTime;
+        }
         
         // Detectar colisión enemigo-jugador
-        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
-            if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
-                razonGameOver = "¡El enemigo te alcanzó!";
-                gameState.setState(GameState::GAME_OVER);
-                audio.playSound("enemy_hit");
-            }
-            // Colisión con segundo enemigo
-            if (gameState.checkEnemyPlayerCollision(enemigo2->getFila(), enemigo2->getColumna(), filaRaton, colRaton)) {
-                razonGameOver = "¡El enemigo 2 te alcanzó!";
-                gameState.setState(GameState::GAME_OVER);
-                audio.playSound("enemy_hit");
+        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado && enemigosActivos) {
+            // Solo considerar colisión si el escudo NO está activo
+            if (tiempoEscudoGanador <= 0.0f) {
+                if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
+                    razonGameOver = "¡El enemigo te alcanzó!";
+                    gameState.setState(GameState::GAME_OVER);
+                    audio.playSound("enemy_hit");
+                }
+                // Colisión con segundo enemigo
+                if (gameState.checkEnemyPlayerCollision(enemigo2->getFila(), enemigo2->getColumna(), filaRaton, colRaton)) {
+                    razonGameOver = "¡El enemigo 2 te alcanzó!";
+                    gameState.setState(GameState::GAME_OVER);
+                    audio.playSound("enemy_hit");
+                }
             }
         }
         
@@ -231,42 +290,45 @@ int main()
         auto posNueva = enemigo->obtenerPosicion();
         int casillasAhora = enemigo->getCasillasRecorridas();
         
-        // Debug: mostrar casillas recorridas cada segundo
-        static float tiempoDebug = 0;
-        tiempoDebug += deltaTime;
-        if (tiempoDebug >= 1.0f) {
-            std::cout << "Casillas recorridas: " << casillasAhora << ", Última bomba en: " << ultimaCasillaContadaBomba << std::endl;
-            tiempoDebug = 0;
-        }
-        
-        // Crear una bomba cada 5 casillas recorridas donde pasa el enemigo
-        if (casillasAhora > ultimaCasillaContadaBomba && (casillasAhora % 5 == 0)) {
-            ultimaCasillaContadaBomba = casillasAhora;
-            
-            int filaEnemigo = enemigo->getFila();
-            int colEnemigo = enemigo->getColumna();
-            
-            if (estadoCeldas[filaEnemigo][colEnemigo] == 0) {
-                tablero->crearBombaTemporalEnCelda(filaEnemigo, colEnemigo);
-                std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posición (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
-            } else {
-                std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creó bomba" << std::endl;
+        // Crear bombas solo si enemigos están activos
+        if (enemigosActivos) {
+            // Debug: mostrar casillas recorridas cada segundo
+            static float tiempoDebug = 0;
+            tiempoDebug += deltaTime;
+            if (tiempoDebug >= 1.0f) {
+                std::cout << "Casillas recorridas: " << casillasAhora << ", Última bomba en: " << ultimaCasillaContadaBomba << std::endl;
+                tiempoDebug = 0;
             }
-        }
-        
-        // Crear bombas para el segundo enemigo
-        int casillasAhora2 = enemigo2->getCasillasRecorridas();
-        if (casillasAhora2 > ultimaCasillaContadaBomba2 && (casillasAhora2 % 5 == 0)) {
-            ultimaCasillaContadaBomba2 = casillasAhora2;
             
-            int filaEnemigo2 = enemigo2->getFila();
-            int colEnemigo2 = enemigo2->getColumna();
+            // Crear una bomba cada 5 casillas recorridas donde pasa el enemigo
+            if (casillasAhora > ultimaCasillaContadaBomba && (casillasAhora % 5 == 0)) {
+                ultimaCasillaContadaBomba = casillasAhora;
+                
+                int filaEnemigo = enemigo->getFila();
+                int colEnemigo = enemigo->getColumna();
+                
+                if (estadoCeldas[filaEnemigo][colEnemigo] == 0) {
+                    tablero->crearBombaTemporalEnCelda(filaEnemigo, colEnemigo);
+                    std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posición (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
+                } else {
+                    std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creó bomba" << std::endl;
+                }
+            }
             
-            if (estadoCeldas[filaEnemigo2][colEnemigo2] == 0) {
-                tablero->crearBombaTemporalEnCelda(filaEnemigo2, colEnemigo2);
-                std::cout << "✓ Bomba 2 creada en casilla " << casillasAhora2 << " en posición (" << filaEnemigo2 << ", " << colEnemigo2 << ")" << std::endl;
-            } else {
-                std::cout << "✗ Celda revelada en casilla " << casillasAhora2 << ", no se creó bomba 2" << std::endl;
+            // Crear bombas para el segundo enemigo
+            int casillasAhora2 = enemigo2->getCasillasRecorridas();
+            if (casillasAhora2 > ultimaCasillaContadaBomba2 && (casillasAhora2 % 5 == 0)) {
+                ultimaCasillaContadaBomba2 = casillasAhora2;
+                
+                int filaEnemigo2 = enemigo2->getFila();
+                int colEnemigo2 = enemigo2->getColumna();
+                
+                if (estadoCeldas[filaEnemigo2][colEnemigo2] == 0) {
+                    tablero->crearBombaTemporalEnCelda(filaEnemigo2, colEnemigo2);
+                    std::cout << "✓ Bomba 2 creada en casilla " << casillasAhora2 << " en posición (" << filaEnemigo2 << ", " << colEnemigo2 << ")" << std::endl;
+                } else {
+                    std::cout << "✗ Celda revelada en casilla " << casillasAhora2 << ", no se creó bomba 2" << std::endl;
+                }
             }
         }
         
@@ -300,9 +362,11 @@ int main()
             window.draw(bombaDibujo);
         }
         
-        // Dibujar enemigo
-        enemigo->dibujar(window, CELDA_SIZE);
-        enemigo2->dibujar(window, CELDA_SIZE);  // Segundo enemigo
+        // Dibujar enemigo (solo si están activos)
+        if (enemigosActivos) {
+            enemigo->dibujar(window, CELDA_SIZE);
+            enemigo2->dibujar(window, CELDA_SIZE);  // Segundo enemigo
+        }
         
         // Dibujar barra lateral con poderes
         float boardWidth = COLUMNAS * CELDA_SIZE;
@@ -377,27 +441,58 @@ int main()
         detectorText.setPosition(boardWidth + 15, 250);
         window.draw(detectorText);
         
-        // Poder 4: Paralizante
-        sf::RectangleShape paralizanteButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-        paralizanteButton.setPosition(boardWidth + 10, 320);
-        
-        if (paralizanteUsado) {
-            paralizanteButton.setFillColor(sf::Color(200, 100, 100));
-        } else {
-            paralizanteButton.setFillColor(sf::Color(150, 100, 255));
+        // Poder 4: Paralizante (solo si enemigos están activos)
+        if (enemigosActivos) {
+            sf::RectangleShape paralizanteButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
+            paralizanteButton.setPosition(boardWidth + 10, 320);
+            
+            if (paralizanteUsado) {
+                paralizanteButton.setFillColor(sf::Color(200, 100, 100));
+            } else {
+                paralizanteButton.setFillColor(sf::Color(150, 100, 255));
+            }
+            
+            paralizanteButton.setOutlineColor(sf::Color::White);
+            paralizanteButton.setOutlineThickness(2);
+            window.draw(paralizanteButton);
+            
+            sf::Text paralizanteText("Paralizante\n(Presiona P)", font, 14);
+            paralizanteText.setFillColor(sf::Color::White);
+            paralizanteText.setPosition(boardWidth + 15, 335);
+            window.draw(paralizanteText);
         }
         
-        paralizanteButton.setOutlineColor(sf::Color::White);
-        paralizanteButton.setOutlineThickness(2);
-        window.draw(paralizanteButton);
-        
-        sf::Text paralizanteText("Paralizante\n(Presiona P)", font, 14);
-        paralizanteText.setFillColor(sf::Color::White);
-        paralizanteText.setPosition(boardWidth + 15, 335);
-        window.draw(paralizanteText);
-        
-        // Dibujar indicador de proximidad si está jugando (mostrar el enemigo más cercano)
-        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado) {
+        // Poder 5: Escudo Ganador (solo si enemigos están activos)
+        if (enemigosActivos) {
+            sf::RectangleShape escudoButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
+            escudoButton.setPosition(boardWidth + 10, 400);
+            
+            if (escudoGanadorUsado) {
+                escudoButton.setFillColor(sf::Color(200, 100, 100));
+            } else {
+                if (tiempoEscudoGanador > 0.0f) {
+                    escudoButton.setFillColor(sf::Color(255, 215, 0));  // Gold mientras está activo
+                } else {
+                    escudoButton.setFillColor(sf::Color(200, 200, 100));
+                }
+            }
+            
+            escudoButton.setOutlineColor(sf::Color::White);
+            escudoButton.setOutlineThickness(2);
+            window.draw(escudoButton);
+            
+            std::string escudoInfo = "Escudo Ganador\n(Presiona E)";
+            if (tiempoEscudoGanador > 0.0f) {
+                escudoInfo += "\n(" + std::to_string((int)tiempoEscudoGanador) + "s)";
+            }
+            sf::Text escudoText(escudoInfo, font, 12);
+            escudoText.setFillColor(sf::Color::White);
+            escudoText.setPosition(boardWidth + 15, 408);
+            window.draw(escudoText);
+        }
+                
+        // Dibujar indicador de proximidad si está jugando y enemigos están activos (mostrar el enemigo más cercano)
+        if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado && enemigosActivos) {
             // Calcular distancia a cada enemigo
             int distancia1 = std::abs(enemigo->getFila() - filaRaton) + std::abs(enemigo->getColumna() - colRaton);
             int distancia2 = std::abs(enemigo2->getFila() - filaRaton) + std::abs(enemigo2->getColumna() - colRaton);

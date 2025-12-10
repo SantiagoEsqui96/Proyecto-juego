@@ -18,7 +18,7 @@ public:
     
     // Control de música
     void playMusic(const std::string& name, bool loop = true);
-    void stopMusic();
+    void stopMusic(const std::string& name = "");  // Si está vacío, detiene todo
     void pauseMusic();
     void resumeMusic();
     void setMusicVolume(float volume);  // 0.0 a 100.0
@@ -34,7 +34,7 @@ private:
     AudioManager();
     ~AudioManager() = default;
     
-    sf::Music music;
+    std::map<std::string, sf::Music> musics;
     std::map<std::string, sf::SoundBuffer> soundBuffers;
     std::map<std::string, sf::Sound> sounds;
     
