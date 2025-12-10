@@ -83,6 +83,8 @@ int main()
     textureMarcarFila.loadFromFile("assets/images/marcar_fila1.png");
     textureAntidoto.loadFromFile("assets/images/antidoto1.png");
     textureDetector.loadFromFile("assets/images/detector1.png");
+    sf::Texture textureBomba;
+    textureBomba.loadFromFile("assets/images/bomba1.png");
 
     sf::Sprite spriteMarcarFila(textureMarcarFila);
     sf::Sprite spriteAntidoto(textureAntidoto);
@@ -363,13 +365,10 @@ int main()
         // Dibujar bombas temporales con efecto visual
         auto posBombas = tablero->obtenerPosicionesBombas();
         for (const auto& bomba : posBombas) {
-            sf::RectangleShape bombaDibujo(sf::Vector2f(CELDA_SIZE * 0.6f, CELDA_SIZE * 0.6f));
-            bombaDibujo.setPosition(bomba.second * CELDA_SIZE + CELDA_SIZE * 0.2f, 
-                                   bomba.first * CELDA_SIZE + CELDA_SIZE * 0.2f);
-            bombaDibujo.setFillColor(sf::Color::Yellow);
-            bombaDibujo.setOutlineColor(sf::Color::Red);
-            bombaDibujo.setOutlineThickness(2.0f);
-            window.draw(bombaDibujo);
+            sf::Sprite spriteBomba(textureBomba);
+            spriteBomba.setPosition(bomba.second * CELDA_SIZE, bomba.first * CELDA_SIZE);
+            spriteBomba.setScale(CELDA_SIZE / spriteBomba.getLocalBounds().width, CELDA_SIZE / spriteBomba.getLocalBounds().height);
+            window.draw(spriteBomba);
         }
         
         // Dibujar enemigo (solo si están activos)

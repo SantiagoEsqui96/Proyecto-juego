@@ -9,6 +9,7 @@ Tablero::Tablero(int filas, int columnas, int minas)
     celdas.resize(filas, std::vector<Celda>(columnas));
     // Cargar textura del insecto
     texturaInsecto.loadFromFile("assets/images/insecto.png");
+    texturaBandera.loadFromFile("assets/images/Bandera1.png");
 }
 
 void Tablero::descubrir(int fila, int columna) {
@@ -123,7 +124,16 @@ void Tablero::dibujar(sf::RenderWindow& window, float size) const {
     for (int i = 0; i < filas; ++i) {
         for (int j = 0; j < columnas; ++j) {
             sf::Vector2f pos(j * size, i * size);
-            window.draw(celdas[i][j].getShape(size, pos));
+            
+            if (celdas[i][j].getEstado() == Celda::Marcada) {
+                sf::Sprite spriteBandera(texturaBandera);
+                spriteBandera.setPosition(pos);
+                spriteBandera.setScale(size / spriteBandera.getLocalBounds().width, size / spriteBandera.getLocalBounds().height);
+                window.draw(spriteBandera);
+            } else {
+                window.draw(celdas[i][j].getShape(size, pos));
+            }
+
             if (celdas[i][j].getEstado() == Celda::Descubierta) {
                 if (celdas[i][j].esMina()) {
                     sf::Sprite spriteInsecto(texturaInsecto);
