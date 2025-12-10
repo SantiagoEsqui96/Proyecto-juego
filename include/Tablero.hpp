@@ -21,6 +21,7 @@ public:
     int getFilas() const;
     int getColumnas() const;
     int getMinas() const;
+    int getMinasMarcadas() const;
     const Celda& getCelda(int fila, int columna) const;
     
     // Métodos para bombas temporales

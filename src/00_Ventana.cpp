@@ -490,6 +490,20 @@ int main()
             escudoText.setPosition(boardWidth + 15, 408);
             window.draw(escudoText);
         }
+
+        // Contador de Plagas
+        sf::RectangleShape counterBox(sf::Vector2f(SIDEBAR_WIDTH - 20, 40));
+        counterBox.setPosition(boardWidth + 10, 580);
+        counterBox.setFillColor(sf::Color(50, 50, 50));
+        counterBox.setOutlineColor(sf::Color::White);
+        counterBox.setOutlineThickness(2);
+        window.draw(counterBox);
+
+        std::string plagasInfo = "Plagas: " + std::to_string(tablero->getMinasMarcadas()) + " / " + std::to_string(tablero->getMinas());
+        sf::Text plagasText(plagasInfo, font, 16);
+        plagasText.setFillColor(sf::Color::White);
+        plagasText.setPosition(boardWidth + 20, 590);
+        window.draw(plagasText);
                 
         // Dibujar indicador de proximidad si está jugando y enemigos están activos (mostrar el enemigo más cercano)
         if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado && enemigosActivos) {

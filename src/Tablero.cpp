@@ -274,6 +274,22 @@ std::vector<std::pair<int, int>> Tablero::obtenerPosicionesBombas() const {
     return bombas;
 }
 
+int Tablero::getMinas() const {
+    return minas;
+}
+
+int Tablero::getMinasMarcadas() const {
+    int cont = 0;
+    for (int i = 0; i < filas; ++i) {
+        for (int j = 0; j < columnas; ++j) {
+            if (celdas[i][j].getEstado() == Celda::Marcada) {
+                cont++;
+            }
+        }
+    }
+    return cont;
+}
+
 const Celda& Tablero::getCelda(int fila, int columna) const {
     return celdas[fila][columna];
 }
