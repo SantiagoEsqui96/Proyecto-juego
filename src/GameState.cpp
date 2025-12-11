@@ -103,6 +103,63 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     window.draw(exitText);
 }
 
+void GameState::drawPause(sf::RenderWindow& window, const sf::Font& font) {
+    // Fondo semi-transparente oscuro
+    sf::RectangleShape background(sf::Vector2f(window.getSize().x, window.getSize().y));
+    background.setFillColor(sf::Color(0, 0, 0, 150));
+    window.draw(background);
+    
+    // Título PAUSA
+    sf::Text title("PAUSA", font, 80);
+    title.setFillColor(sf::Color::White);
+    title.setStyle(sf::Text::Bold);
+    sf::FloatRect titleBounds = title.getLocalBounds();
+    title.setPosition((window.getSize().x - titleBounds.width) / 2, 150);
+    window.draw(title);
+    
+    // Botón Continuar
+    sf::RectangleShape resumeButton(sf::Vector2f(300, 60));
+    resumeButton.setPosition((window.getSize().x - 300) / 2, 300);
+    resumeButton.setFillColor(sf::Color(0, 100, 200));
+    resumeButton.setOutlineColor(sf::Color::White);
+    resumeButton.setOutlineThickness(3);
+    window.draw(resumeButton);
+    
+    sf::Text resumeText("CONTINUAR", font, 30);
+    resumeText.setFillColor(sf::Color::White);
+    sf::FloatRect resumeBounds = resumeText.getLocalBounds();
+    resumeText.setPosition((window.getSize().x - resumeBounds.width) / 2, 310);
+    window.draw(resumeText);
+    
+    // Botón Reiniciar
+    sf::RectangleShape restartButton(sf::Vector2f(300, 60));
+    restartButton.setPosition((window.getSize().x - 300) / 2, 380);
+    restartButton.setFillColor(sf::Color(200, 100, 0));
+    restartButton.setOutlineColor(sf::Color::White);
+    restartButton.setOutlineThickness(3);
+    window.draw(restartButton);
+    
+    sf::Text restartText("REINICIAR", font, 30);
+    restartText.setFillColor(sf::Color::White);
+    sf::FloatRect restartBounds = restartText.getLocalBounds();
+    restartText.setPosition((window.getSize().x - restartBounds.width) / 2, 390);
+    window.draw(restartText);
+    
+    // Botón Menú
+    sf::RectangleShape menuButton(sf::Vector2f(300, 60));
+    menuButton.setPosition((window.getSize().x - 300) / 2, 460);
+    menuButton.setFillColor(sf::Color(150, 0, 0));
+    menuButton.setOutlineColor(sf::Color::White);
+    menuButton.setOutlineThickness(3);
+    window.draw(menuButton);
+    
+    sf::Text menuText("MENU PRINCIPAL", font, 26);
+    menuText.setFillColor(sf::Color::White);
+    sf::FloatRect menuBounds = menuText.getLocalBounds();
+    menuText.setPosition((window.getSize().x - menuBounds.width) / 2, 473);
+    window.draw(menuText);
+}
+
 void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font) {
     // Fondo semi-transparente
     sf::RectangleShape background(sf::Vector2f(window.getSize().x, window.getSize().y));
@@ -128,6 +185,7 @@ void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font)
         "",
         "PODERES:",
         "R - Marcar Fila: Marca todas las plagas de una fila (1 uso)",
+        "C - Marcar Columna: Marca todas las plagas de una columna (1 uso)",
         "D - Detector: Marca una plaga al azar (5 usos)",
         "P - Paralizante: Paraliza al enemigo por 30 segundos (1 uso)",
         "E - Escudo Ganador: Invulnerable a enemigos por 30s (1 uso SOLO PARA GANAR)",
@@ -265,6 +323,40 @@ bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window) {
         }
     }
     return false;
+}
+
+int GameState::handlePauseInput(sf::Event& event, sf::RenderWindow& window) {
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+        setState(PLAYING);
+        return 1; // Resume
+    }
+    
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+        int mouseX = event.mouseButton.x;
+        int mouseY = event.mouseButton.y;
+        
+        // Botón Continuar
+        if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
+            mouseY >= 300 && mouseY <= 360) {
+            setState(PLAYING);
+            return 1; // Resume
+        }
+        
+        // Botón Reiniciar
+        if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
+            mouseY >= 380 && mouseY <= 440) {
+            setState(PLAYING);
+            return 2; // Restart
+        }
+        
+        // Botón Menú
+        if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
+            mouseY >= 460 && mouseY <= 520) {
+            setState(MENU);
+            return 3; // Menu
+        }
+    }
+    return 0;
 }
 
 bool GameState::handleInstructionsInput(sf::Event& event) {

@@ -11,6 +11,7 @@ public:
     void descubrir(int fila, int columna);
     void marcar(int fila, int columna);
     void marcarFilaDeMinas(int fila);
+    void marcarColumnaDeMinas(int columna);
     void marcarMinaAlAzar();
     int getUsosDetectorMinas() const;
     void usarAntidoto();

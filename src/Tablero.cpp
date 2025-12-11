@@ -107,6 +107,16 @@ void Tablero::marcarFilaDeMinas(int fila) {
     }
 }
 
+void Tablero::marcarColumnaDeMinas(int columna) {
+    if (columna < 0 || columna >= columnas)
+        return;
+    for (int i = 0; i < filas; ++i) {
+        if (celdas[i][columna].esMina() && celdas[i][columna].getEstado() == Celda::Oculta) {
+            celdas[i][columna].setEstado(Celda::Marcada);
+        }
+    }
+}
+
 void Tablero::usarAntidoto() {
     tieneAntidotoDisponible = false;
 }
