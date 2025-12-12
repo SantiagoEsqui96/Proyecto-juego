@@ -6,6 +6,9 @@
 #include <climits>
 #include <iostream>
 
+// ============================================
+// CONSTRUCTOR - Inicializa enemigo perseguidor
+// ============================================
 Enemigo::Enemigo(int filas, int columnas, const std::string& texturePath)
     : filas(filas), columnas(columnas), 
       fila(0), columna(0),
@@ -16,10 +19,12 @@ Enemigo::Enemigo(int filas, int columnas, const std::string& texturePath)
       tiempoParalizado(0.0f),
       direccionActual(Direccion::DERECHA),
       texturasCargadas(false) {
-    // Generar posición inicial en uno de los lados del tablero
+    
+    // Generar posición inicial aleatoria en uno de los bordes del tablero
+    // Esto asegura que el enemigo comienza fuera del área de juego principal
     generarPosicionInicial(filas, columnas);
     
-    // Cargar textura de la plaga
+    // Cargar textura de la plaga (puede ser plaga1.png o plaga2.png)
     if (textura.loadFromFile(texturePath)) {
         sprite.setTexture(textura);
         texturasCargadas = true;
@@ -29,33 +34,42 @@ Enemigo::Enemigo(int filas, int columnas, const std::string& texturePath)
     }
 }
 
+// ============================================
+// MÉTODO: Generar posición inicial
+// Coloca el enemigo aleatoriamente en uno de los 4 bordes del tablero
+// También establece la dirección inicial hacia el centro
+// ============================================
 void Enemigo::generarPosicionInicial(int f, int c) {
-    // Elegir aleatoriamente un lado del tablero
+    // Elegir aleatoriamente uno de los 4 lados del tablero
     int lado = rand() % 4;
     
     switch (lado) {
-        case 0:  // Arriba (fila 0)
+        case 0:  // ARRIBA - Borde superior (fila 0)
             fila = 0;
-            columna = rand() % c;
-            direccionActual = Direccion::ABAJO;
+            columna = rand() % c;  // Columna aleatoria
+            direccionActual = Direccion::ABAJO;  // Moverse hacia abajo
             break;
-        case 1:  // Abajo (última fila)
+            
+        case 1:  // ABAJO - Borde inferior (última fila)
             fila = f - 1;
-            columna = rand() % c;
-            direccionActual = Direccion::ARRIBA;
+            columna = rand() % c;  // Columna aleatoria
+            direccionActual = Direccion::ARRIBA;  // Moverse hacia arriba
             break;
-        case 2:  // Izquierda (columna 0)
-            fila = rand() % f;
+            
+        case 2:  // IZQUIERDA - Borde izquierdo (columna 0)
+            fila = rand() % f;  // Fila aleatoria
             columna = 0;
-            direccionActual = Direccion::DERECHA;
+            direccionActual = Direccion::DERECHA;  // Moverse hacia derecha
             break;
-        case 3:  // Derecha (última columna)
-            fila = rand() % f;
+            
+        case 3:  // DERECHA - Borde derecho (última columna)
+            fila = rand() % f;  // Fila aleatoria
             columna = c - 1;
-            direccionActual = Direccion::IZQUIERDA;
+            direccionActual = Direccion::IZQUIERDA;  // Moverse hacia izquierda
             break;
     }
     
+    // Establecer destino inicial igual a posición actual
     filaDestino = fila;
     columnaDestino = columna;
 }

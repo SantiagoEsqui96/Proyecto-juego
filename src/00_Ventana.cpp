@@ -7,139 +7,214 @@
 #include <iostream>
 #include <algorithm>
 
+// ============================================
+// VARIABLES GLOBALES - CONFIGURACIÓN DEL JUEGO
+// ============================================
+
+// Dimensiones del tablero (cambian según dificultad)
 int FILAS = 40;
 int COLUMNAS = 40;
 int MINAS = 350;
-int CELDA_SIZE = 32.0f;
-float SIDEBAR_WIDTH = 200.0f;
-int dificultad = 1;  // 0: EASY (20x20, 40), 1: MEDIUM (30x30, 135), 2: HARD (40x40, 350) - predeterminado MEDIUM
-bool showDifficultyMenu = false;  // Control para mostrar/ocultar submenú de dificultad
-bool marcarFilaUsado = false;
-bool marcarColumnaUsado = false;
-bool detectorMinasUsado = false;
-bool paralizanteUsado = false;
-bool escudoGanadorUsado = false;
-float tiempoEscudoGanador = 0.0f;
-bool musicaReproduciendo = false;
-bool musicaMenuReproduciendo = false;
-bool enemigosActivos = true;  // Variable para activar/desactivar enemigos
-int ultimaCasillaContadaBomba = 0;  // Rastrear el último punto donde se creó bomba
-int ultimaCasillaContadaBomba2 = 0;  // Rastrear bombas del segundo enemigo
-float boardOffsetX = 0.0f;  // Offset X para centrar el tablero
-float boardOffsetY = 0.0f;  // Offset Y para centrar el tablero
 
-// Función para centrar la ventana en la pantalla
+// Configuración visual
+int CELDA_SIZE = 32.0f;              // Tamaño en píxeles de cada celda
+float SIDEBAR_WIDTH = 200.0f;         // Ancho de la barra lateral de poderes
+
+// Sistema de dificultad (0=EASY, 1=MEDIUM, 2=HARD)
+int dificultad = 1;  // 0: EASY (20x20, 40), 1: MEDIUM (30x30, 135), 2: HARD (40x40, 350) - predeterminado MEDIUM
+
+// Control de menú
+bool showDifficultyMenu = false;  // Mostrar/ocultar submenú de selección de dificultad
+bool showSoundMenu = false;       // Mostrar/ocultar submenú de sonido
+
+// ============================================
+// ESTADO DE PODERES - Controlan si ya fueron usados
+// ============================================
+bool marcarFilaUsado = false;         // Poder Marcar Fila (R) - 1 uso
+bool marcarColumnaUsado = false;      // Poder Marcar Columna (C) - 1 uso
+bool detectorMinasUsado = false;      // Poder Detector (D) - 5 usos máximo
+bool paralizanteUsado = false;        // Poder Paralizante (P) - 1 uso
+bool escudoGanadorUsado = false;      // Poder Escudo Ganador (E) - 1 uso especial para ganar
+
+// ============================================
+// TIEMPO Y ESTADOS ESPECIALES
+// ============================================
+float tiempoEscudoGanador = 0.0f;     // Contador de tiempo para el escudo (máx 30 segundos)
+bool musicaReproduciendo = false;     // Flag: música de juego en reproducción
+bool musicaMenuReproduciendo = false; // Flag: música de menú en reproducción
+bool enemigosActivos = true;          // Activar/desactivar movimiento de enemigos
+
+// ============================================
+// SISTEMA DE BOMBAS - Rastreamiento de generación
+// ============================================
+int ultimaCasillaContadaBomba = 0;    // Última casilla donde se generó bomba (enemigo 1)
+int ultimaCasillaContadaBomba2 = 0;   // Última casilla donde se generó bomba (enemigo 2)
+
+// ============================================
+// SISTEMA DE CENTRADO - Para diferentes dificultades
+// ============================================
+float boardOffsetX = 0.0f;  // Desplazamiento X para centrar el tablero (EASY/MEDIUM)
+float boardOffsetY = 0.0f;  // Desplazamiento Y para centrar el tablero (EASY/MEDIUM)
+
+// ============================================
+// FUNCIÓN: Centrar ventana en pantalla
+// Calcula el centro de la pantalla y posiciona la ventana ahí
+// ============================================
 void centrarVentana(sf::RenderWindow& window) {
     sf::Vector2u windowSize = window.getSize();
     sf::Vector2i screenCenter(sf::VideoMode::getDesktopMode().width / 2, sf::VideoMode::getDesktopMode().height / 2);
     window.setPosition(sf::Vector2i(screenCenter.x - windowSize.x / 2, screenCenter.y - windowSize.y / 2));
 }
 
-// Función para reiniciar el juego
+// ============================================
+// FUNCIÓN: Reiniciar el juego
+// - Aplica parámetros según dificultad seleccionada
+// - Crea nuevas instancias de tablero y enemigos
+// - Resetea todos los poderes
+// - Detiene música actual
+// ============================================
 void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bool& juegoIniciado, 
                     bool& marcarFilaUsado, bool& marcarColumnaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, bool& escudoGanadorUsado,
                     int& ultimaCasillaContadaBomba, int& ultimaCasillaContadaBomba2, float& tiempoJuego, float& tiempoEscudoGanador,
                     AudioManager& audio, bool& musicaReproduciendo, bool& musicaMenuReproduciendo) {
-    // Aplicar dificultad seleccionada
-    if (dificultad == 0) { // EASY
+    // Aplicar parámetros según dificultad seleccionada
+    if (dificultad == 0) { // EASY - Tablero pequeño, pocas minas
         FILAS = 20;
         COLUMNAS = 20;
         MINAS = 40;
-    } else if (dificultad == 1) { // MEDIUM
+    } else if (dificultad == 1) { // MEDIUM - Tablero mediano, minas moderadas
         FILAS = 30;
         COLUMNAS = 30;
         MINAS = 135;
-    } else { // HARD
+    } else { // HARD - Tablero grande, muchas minas
         FILAS = 40;
         COLUMNAS = 40;
         MINAS = 350;
     }
     
+    // Liberar memoria de instancias anteriores
     delete tablero;
     delete enemigo;
     delete enemigo2;
+    
+    // Crear nuevas instancias con los parámetros actualizados
     tablero = new Tablero(FILAS, COLUMNAS, MINAS);
     enemigo = new Enemigo(FILAS, COLUMNAS);
-    enemigo2 = new Enemigo(FILAS, COLUMNAS, "assets/images/plaga2.png");
+    enemigo2 = new Enemigo(FILAS, COLUMNAS, "assets/images/plaga2.png");  // Segundo enemigo con textura diferente
+    
+    // Resetear estados del juego
     juegoIniciado = false;
+    
+    // Resetear todos los poderes (permitir usarlos nuevamente)
     marcarFilaUsado = false;
     marcarColumnaUsado = false;
     detectorMinasUsado = false;
     paralizanteUsado = false;
     escudoGanadorUsado = false;
     tiempoEscudoGanador = 0.0f;
+    
+    // Resetear contadores de bombas
     ultimaCasillaContadaBomba = 0;
     ultimaCasillaContadaBomba2 = 0;
     tiempoJuego = 0.0f;
+    
+    // Resetear estado de música
     musicaReproduciendo = false;
     musicaMenuReproduciendo = false;
     audio.stopMusic();
+    
     std::cout << "Juego reiniciado con dificultad: " << dificultad << " (" << FILAS << "x" << COLUMNAS << ", " << MINAS << " minas)" << std::endl;
 }
 
 int main()
 {
+    // ============================================
+    // INICIALIZACIÓN - Crear ventana y tablero
+    // ============================================
     std::cout << "Creando tablero con: " << FILAS << " x " << COLUMNAS << " casillas, " << MINAS << " minas" << std::endl;
+    
+    // Crear ventana con tamaño según dificultad (ancho = tablero + barra lateral)
     sf::RenderWindow window(sf::VideoMode((COLUMNAS * CELDA_SIZE) + SIDEBAR_WIDTH, FILAS * CELDA_SIZE), "Buscaplagas");
     std::cout << "Tamaño ventana: " << (int)((COLUMNAS * CELDA_SIZE) + SIDEBAR_WIDTH) << " x " << (int)(FILAS * CELDA_SIZE) << std::endl;
     
-    // Usar punteros para poder reiniciar
+    // ============================================
+    // CREACIÓN DE OBJETOS - Tablero y enemigos
+    // ============================================
+    // Usar punteros para poder reiniciar el juego dinámicamente
     Tablero* tablero = new Tablero(FILAS, COLUMNAS, MINAS);
     Enemigo* enemigo = new Enemigo(FILAS, COLUMNAS);
     Enemigo* enemigo2 = new Enemigo(FILAS, COLUMNAS, "assets/images/plaga2.png");  // Segundo enemigo independiente
     
-    // GameState y AudioManager
+    // GameState gestiona los diferentes estados (menú, juego, pausa, etc)
     GameState gameState;
+    
+    // AudioManager es un Singleton que maneja todos los sonidos e música
     AudioManager& audio = AudioManager::getInstance();
     
-    // Cargar fuente
+    // ============================================
+    // CARGAR RECURSOS - Fuente, texturas y audio
+    // ============================================
+    // Cargar fuente Minecraft para toda la interfaz
     sf::Font font;
     font.loadFromFile("assets/fonts/Minecraft.ttf");
     
-    // Intentar cargar audio (opcional, el juego funcionará sin audio)
+    // Cargar efectos de sonido (opcional, el juego funciona sin audio)
     audio.loadSound("explosion", "assets/sounds/explosion.wav");
     audio.loadSound("victory", "assets/sounds/victory.wav");
     audio.loadSound("power", "assets/sounds/power_use.wav");
     audio.loadSound("enemy_hit", "assets/sounds/enemy_hit.wav");
     audio.loadSound("click_casilla", "assets/sounds/click_casilla_buena.wav");
-    audio.loadMusic("background", "assets/music/musica.ogg");
-    // Cargar música del menú
-    audio.loadMusic("menu", "assets/music/enchanted_tiki_86.mp3");
     
-    // Cargar texturas de iconos
+    // Cargar música de fondo
+    audio.loadMusic("background", "assets/music/musica.ogg");      // Música durante el juego
+    audio.loadMusic("menu", "assets/music/enchanted_tiki_86.mp3"); // Música del menú
+    
+    // Cargar texturas de poderes (para mostrar en la barra lateral)
     sf::Texture textureMarcarFila, textureMarcarColumna, textureAntidoto, textureDetector;
     textureMarcarFila.loadFromFile("assets/images/marcar_fila1.png");
     textureMarcarColumna.loadFromFile("assets/images/Marcarfila2.png");
     textureAntidoto.loadFromFile("assets/images/antidoto1.png");
     textureDetector.loadFromFile("assets/images/detector1.png");
+    
+    // Cargar textura de bomba (se muestra cuando aparecen bombas temporales)
     sf::Texture textureBomba;
     textureBomba.loadFromFile("assets/images/bomba1.png");
     
-    // Cargar textura de fondo del portada
+    // Cargar textura de fondo (se usa en menú, instrucciones y juego)
     sf::Texture textureBackground;
     textureBackground.loadFromFile("assets/images/Portada.png");
     sf::Sprite spriteBackground(textureBackground);
 
+    // Crear sprites para los poderes de la barra lateral
     sf::Sprite spriteMarcarFila(textureMarcarFila);
     sf::Sprite spriteAntidoto(textureAntidoto);
     sf::Sprite spriteDetector(textureDetector);
 
-    // Reloj para deltaTime y tiempo de juego
+    // ============================================
+    // VARIABLES DE CONTROL DEL GAME LOOP
+    // ============================================
+    // Reloj para medir el tiempo transcurrido (deltaTime)
     sf::Clock clock;
-    float tiempoJuego = 0.0f;
+    float tiempoJuego = 0.0f;   // Contador de tiempo total del juego
     
-    // Control de si el juego ha iniciado
+    // Control de si el juego ha iniciado (primera celda revelada)
     bool juegoIniciado = false;
-    std::string razonGameOver = "";
+    std::string razonGameOver = "";  // Razón de derrota para mostrar en pantalla
 
+    // ============================================
+    // GAME LOOP - Ejecuta continuamente hasta cerrar
+    // ============================================
     while (window.isOpen())
     {
-        // Calcular offsets para centrar el tablero (solo en FÁCIL y MEDIO)
+        // ============================================
+        // CALCULAR OFFSETS - Para centrado de tablero
+        // ============================================
+        // Calcular dimensiones del tablero en píxeles
         float boardWidth = COLUMNAS * CELDA_SIZE;
         float boardHeight = FILAS * CELDA_SIZE;
         
-        // En DIFÍCIL, no centrar (dejar todo pantalla completa como antes)
-        // En FÁCIL y MEDIO, centrar
+        // En DIFÍCIL: pantalla completa (sin centrado)
+        // En FÁCIL y MEDIO: centrar el tablero en la pantalla
         if (dificultad == 2) {  // DIFÍCIL
             boardOffsetX = 0.0f;
             boardOffsetY = 0.0f;
@@ -157,14 +232,22 @@ int main()
             
             // Manejo de estados del juego
             if (gameState.getCurrentState() == GameState::MENU) {
-                if (gameState.handleMenuInput(event, window, showDifficultyMenu)) {
-                    if (gameState.getCurrentState() == GameState::PLAYING) {
-                        reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, marcarColumnaUsado,
-                                      detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
-                        centrarVentana(window);
+                // Primero verificar si se presionó ESC (para cerrar menús)
+                if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+                    if (showDifficultyMenu) {
+                        showDifficultyMenu = false;
+                    } else if (showSoundMenu) {
+                        showSoundMenu = false;
                     }
+                    continue;
+                }
+                
+                // Procesamiento normal de input del menú
+                if (showSoundMenu) {
+                    // Si el submenú de sonido está abierto, manejar su input
+                    gameState.handleSoundMenuInput(event, window);
                 } else if (showDifficultyMenu) {
-                    // Si el submenú está abierto, manejar su input
+                    // Si el submenú de dificultad está abierto, manejar su input
                     int selectedDifficulty = gameState.handleDifficultyMenuInput(event, window);
                     if (selectedDifficulty != -1) {
                         // Configurar parámetros según dificultad seleccionada
@@ -172,6 +255,12 @@ int main()
                         // NO cambiar FILAS, COLUMNAS, MINAS aquí - solo guardar la selección
                         // El cambio efectivo ocurrirá cuando se presione JUGAR
                         showDifficultyMenu = false;
+                    }
+                } else if (gameState.handleMenuInput(event, window, showDifficultyMenu, showSoundMenu)) {
+                    if (gameState.getCurrentState() == GameState::PLAYING) {
+                        reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, marcarColumnaUsado,
+                                      detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
+                        centrarVentana(window);
                     }
                 }
                 continue;
@@ -232,7 +321,9 @@ int main()
                     }
                     if (event.mouseButton.button == sf::Mouse::Left) {
                         tablero->descubrir(y, x);
-                        audio.playSound("click_casilla");
+                        if (gameState.isMusicEnabled()) {
+                            audio.playSound("click_casilla");
+                        }
                     } else if (event.mouseButton.button == sf::Mouse::Right)
                         tablero->marcar(y, x);
                 }
@@ -241,12 +332,14 @@ int main()
             // Poder: Marcar todas las minas de una fila con la tecla R
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::R) {
-                    if (!marcarFilaUsado) {
+                    if (!marcarFilaUsado && juegoIniciado) {
                         int mouseY = (sf::Mouse::getPosition(window).y - boardOffsetY) / CELDA_SIZE;
                         if (mouseY >= 0 && mouseY < FILAS) {
                             tablero->marcarFilaDeMinas(mouseY);
                             marcarFilaUsado = true;
-                            audio.playSound("power");
+                            if (gameState.isMusicEnabled()) {
+                                audio.playSound("power");
+                            }
                             std::cout << "Poder activado: Se marcaron todas las minas de la fila " << mouseY << std::endl;
                         }
                     } else {
@@ -255,12 +348,14 @@ int main()
                 }
                 // Poder: Marcar todas las minas de una columna con la tecla C
                 if (event.key.code == sf::Keyboard::C) {
-                    if (!marcarColumnaUsado) {
+                    if (!marcarColumnaUsado && juegoIniciado) {
                         int mouseX = (sf::Mouse::getPosition(window).x - boardOffsetX) / CELDA_SIZE;
                         if (mouseX >= 0 && mouseX < COLUMNAS) {
                             tablero->marcarColumnaDeMinas(mouseX);
                             marcarColumnaUsado = true;
-                            audio.playSound("power");
+                            if (gameState.isMusicEnabled()) {
+                                audio.playSound("power");
+                            }
                             std::cout << "Poder activado: Se marcaron todas las minas de la columna " << mouseX << std::endl;
                         }
                     } else {
@@ -269,31 +364,37 @@ int main()
                 }
                 // Poder: Marcar una mina al azar con la tecla D
                 if (event.key.code == sf::Keyboard::D) {
-                    if (tablero->getUsosDetectorMinas() > 0) {
+                    if (tablero->getUsosDetectorMinas() > 0 && juegoIniciado) {
                         tablero->marcarMinaAlAzar();
-                        audio.playSound("power");
+                        if (gameState.isMusicEnabled()) {
+                            audio.playSound("power");
+                        }
                     } else {
                         std::cout << "No tienes usos del detector de minas." << std::endl;
                     }
                 }
                 // Poder: Paralizar enemigo con la tecla P (solo si enemigos están activos)
-                if (event.key.code == sf::Keyboard::P && enemigosActivos) {
+                if (event.key.code == sf::Keyboard::P && enemigosActivos && juegoIniciado) {
                     if (!paralizanteUsado) {
                         enemigo->paralizarTemporalmente(30.0f);
                         enemigo2->paralizarTemporalmente(30.0f);
                         paralizanteUsado = true;
-                        audio.playSound("power");
+                        if (gameState.isMusicEnabled()) {
+                            audio.playSound("power");
+                        }
                         std::cout << "¡AMBOS ENEMIGOS PARALIZADOS POR 30 SEGUNDOS!" << std::endl;
                     } else {
                         std::cout << "El poder 'Paralizante' ya fue usado." << std::endl;
                     }
                 }
                 // Poder: Escudo Ganador con la tecla E (solo si enemigos están activos)
-                if (event.key.code == sf::Keyboard::E && enemigosActivos) {
+                if (event.key.code == sf::Keyboard::E && enemigosActivos && juegoIniciado) {
                     if (!escudoGanadorUsado) {
                         tiempoEscudoGanador = 30.0f;
                         escudoGanadorUsado = true;
-                        audio.playSound("power");
+                        if (gameState.isMusicEnabled()) {
+                            audio.playSound("power");
+                        }
                         std::cout << "¡ESCUDO GANADOR ACTIVADO! Eres invulnerable a los enemigos por 30 segundos!" << std::endl;
                     } else {
                         std::cout << "El poder 'Escudo Ganador' ya fue usado." << std::endl;
@@ -322,17 +423,55 @@ int main()
         // Obtener deltaTime
         float deltaTime = clock.restart().asSeconds();
         
+        // Control centralizado de música basado en el estado de activación
+        static bool lastMusicEnabledState = true;
+        static bool initialized = false;
+        bool currentMusicEnabled = gameState.isMusicEnabled();
+        
+        // Inicializar el estado de música al inicio
+        if (!initialized) {
+            initialized = true;
+            lastMusicEnabledState = currentMusicEnabled;
+        }
+        
+        // Si el estado de música cambió
+        if (currentMusicEnabled != lastMusicEnabledState) {
+            lastMusicEnabledState = currentMusicEnabled;
+            
+            if (currentMusicEnabled) {
+                // Reactivar música según el estado actual del juego
+                if (gameState.getCurrentState() == GameState::MENU && musicaMenuReproduciendo) {
+                    audio.playMusic("menu", true);
+                } else if (gameState.getCurrentState() == GameState::PLAYING && musicaReproduciendo) {
+                    audio.playMusic("background", true);
+                }
+            } else {
+                // Desactivar TODA la música: DETENERLA COMPLETAMENTE
+                audio.stopMusic("");  // Detiene todas
+            }
+        }
+        
+        // VERIFICACIÓN CONSTANTE: Si música está deshabilitada, asegurar que esté parada
+        if (!gameState.isMusicEnabled()) {
+            audio.stopMusic("");  // Detiene todo lo que esté sonando
+        }
         // Reproducir música del menú cuando no está jugando
         if (gameState.getCurrentState() == GameState::MENU && !musicaMenuReproduciendo) {
             audio.stopMusic("background");  // Detener solo la música de juego
-            audio.playMusic("menu", true);
+            audio.stopMusic("menu");  // Detener cualquier música que esté sonando
+            if (gameState.isMusicEnabled()) {
+                audio.playMusic("menu", true);
+            }
             musicaMenuReproduciendo = true;
         }
         
         // Detener música del menú y cambiar a música de juego cuando comienza
         if (gameState.getCurrentState() == GameState::PLAYING && juegoIniciado && musicaMenuReproduciendo) {
             audio.stopMusic("menu");  // Detener solo la música del menú
-            audio.playMusic("background", true);
+            audio.stopMusic("background");  // Detener cualquier otra música
+            if (gameState.isMusicEnabled()) {
+                audio.playMusic("background", true);
+            }
             musicaMenuReproduciendo = false;
             musicaReproduciendo = true;
         }
@@ -389,13 +528,17 @@ int main()
                 if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
                     razonGameOver = "El enemigo te alcanzo";
                     gameState.setState(GameState::GAME_OVER);
-                    audio.playSound("enemy_hit");
+                    if (gameState.isMusicEnabled()) {
+                        audio.playSound("enemy_hit");
+                    }
                 }
                 // Colisión con segundo enemigo
                 if (gameState.checkEnemyPlayerCollision(enemigo2->getFila(), enemigo2->getColumna(), filaRaton, colRaton)) {
                     razonGameOver = "El enemigo 2 te alcanzo";
                     gameState.setState(GameState::GAME_OVER);
-                    audio.playSound("enemy_hit");
+                    if (gameState.isMusicEnabled()) {
+                        audio.playSound("enemy_hit");
+                    }
                 }
             }
         }
@@ -453,11 +596,15 @@ int main()
         if (gameState.getCurrentState() == GameState::PLAYING && tablero->esFinDelJuego()) {
             if (tablero->esVictoria()) {
                 gameState.setState(GameState::VICTORY);
-                audio.playSound("victory");
+                if (gameState.isMusicEnabled()) {
+                    audio.playSound("victory");
+                }
             } else {
                 razonGameOver = "Pisaste una plaga!";
                 gameState.setState(GameState::GAME_OVER);
-                audio.playSound("explosion");
+                if (gameState.isMusicEnabled()) {
+                    audio.playSound("explosion");
+                }
             }
         }
         
@@ -676,7 +823,7 @@ int main()
         
         // Dibujar pantallas según estado
         if (gameState.getCurrentState() == GameState::MENU) {
-            gameState.drawMenu(window, font, static_cast<GameState::Difficulty>(dificultad), showDifficultyMenu);
+            gameState.drawMenu(window, font, static_cast<GameState::Difficulty>(dificultad), showDifficultyMenu, showSoundMenu);
         } else if (gameState.getCurrentState() == GameState::PAUSED) {
             gameState.drawPause(window, font);
         } else if (gameState.getCurrentState() == GameState::INSTRUCTIONS) {

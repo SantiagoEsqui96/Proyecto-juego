@@ -3,41 +3,68 @@
 #include <map>
 #include <string>
 
+// ============================================
+// CLASE AUDIOMANAGER - Gestor de audio (Singleton)
+// Características:
+// - Instancia única en toda la aplicación
+// - Gestiona música de fondo
+// - Gestiona efectos de sonido
+// - Control de volumen
+// ============================================
 class AudioManager {
 public:
-    // Singleton pattern
+    // ============================================
+    // PATRÓN SINGLETON - Acceso a instancia única
+    // ============================================
     static AudioManager& getInstance();
     
-    // Prevenir copia
+    // Prevenir copias (propio del patrón Singleton)
     AudioManager(const AudioManager&) = delete;
     AudioManager& operator=(const AudioManager&) = delete;
     
-    // Cargar recursos de audio
-    bool loadMusic(const std::string& name, const std::string& filepath);
-    bool loadSound(const std::string& name, const std::string& filepath);
+    // ============================================
+    // CARGA DE RECURSOS - Cargar archivos
+    // ============================================
+    bool loadMusic(const std::string& name, const std::string& filepath);   // Cargar música (.ogg, .mp3)
+    bool loadSound(const std::string& name, const std::string& filepath);   // Cargar efecto (.wav)
     
-    // Control de música
-    void playMusic(const std::string& name, bool loop = true);
-    void stopMusic(const std::string& name = "");  // Si está vacío, detiene todo
-    void pauseMusic();
-    void resumeMusic();
-    void setMusicVolume(float volume);  // 0.0 a 100.0
+    // ============================================
+    // CONTROL DE MÚSICA
+    // ============================================
+    void playMusic(const std::string& name, bool loop = true);   // Reproducir música (con loop)
+    void stopMusic(const std::string& name = "");                // Detener (vacío = todas)
+    void pauseMusic();                                           // Pausar música en reproducción
+    void resumeMusic();                                          // Reanudar música pausada
+    void setMusicVolume(float volume);                           // Volumen: 0.0 a 100.0
     
-    // Control de efectos de sonido
-    void playSound(const std::string& name);
-    void setSoundVolume(float volume);  // 0.0 a 100.0
+    // ============================================
+    // CONTROL DE EFECTOS DE SONIDO
+    // ============================================
+    void playSound(const std::string& name);                     // Reproducir efecto
+    void setSoundVolume(float volume);                           // Volumen: 0.0 a 100.0
     
-    // Estado
-    bool isMusicPlaying() const;
+    // ============================================
+    // INFORMACIÓN DE ESTADO
+    // ============================================
+    bool isMusicPlaying() const;                                 // ¿Hay música en reproducción?
     
 private:
+    // ============================================
+    // CONSTRUCTOR PRIVADO - Singleton
+    // ============================================
     AudioManager();
     ~AudioManager() = default;
     
-    std::map<std::string, sf::Music> musics;
-    std::map<std::string, sf::SoundBuffer> soundBuffers;
-    std::map<std::string, sf::Sound> sounds;
+    // ============================================
+    // ALMACENAMIENTO DE RECURSOS
+    // ============================================
+    std::map<std::string, sf::Music> musics;              // Música cargada (por nombre)
+    std::map<std::string, sf::SoundBuffer> soundBuffers;  // Buffers de sonido
+    std::map<std::string, sf::Sound> sounds;              // Efectos de sonido
     
-    float musicVolume;
-    float soundVolume;
+    // ============================================
+    // CONFIGURACIÓN
+    // ============================================
+    float musicVolume;      // Volumen actual de música (0-100)
+    float soundVolume;      // Volumen actual de efectos (0-100)
 };

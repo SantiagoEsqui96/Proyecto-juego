@@ -1,22 +1,49 @@
 #include "../include/GameState.hpp"
+#include "../include/AudioManager.hpp"
 #include <cmath>
 #include <sstream>
 #include <iomanip>
 
-GameState::GameState() : currentState(MENU) {
+// ============================================
+// CONSTRUCTOR - Inicializa el gestor de estados
+// ============================================
+GameState::GameState() : currentState(MENU), musicVolume(70.0f), soundVolume(70.0f), musicEnabled(true) {
+    // Cargar textura de fondo que se usa en múltiples pantallas
     backgroundTexture.loadFromFile("assets/images/Portada.png");
 }
 
+// ============================================
+// MÉTODO: Obtener estado actual
+// Retorna el estado en el que se encuentra el juego
+// ============================================
 GameState::State GameState::getCurrentState() const {
     return currentState;
 }
 
+// ============================================
+// MÉTODO: Establecer nuevo estado
+// Cambia el estado del juego (MENU, PLAYING, PAUSED, etc)
+// ============================================
 void GameState::setState(State newState) {
     currentState = newState;
 }
 
-void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficulty currentDifficulty, bool showDifficultyMenu) {
-    // Dibujar imagen de fondo
+// ============================================
+// MÉTODO: Obtener estado de la música
+// Retorna si la música está activada o no
+// ============================================
+bool GameState::isMusicEnabled() const {
+    return musicEnabled;
+}
+
+// ============================================
+// MÉTODO: Dibujar menú principal
+// Renderiza el menú con opciones de jugar y dificultad
+// ============================================
+void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficulty currentDifficulty, bool showDifficultyMenu, bool showSoundMenu) {
+    // ============================================
+    // Renderizar fondo escalado
+    // ============================================
     backgroundSprite.setTexture(backgroundTexture);
     backgroundSprite.setScale(
         static_cast<float>(window.getSize().x) / backgroundSprite.getLocalBounds().width,
@@ -24,12 +51,16 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     );
     window.draw(backgroundSprite);
 
-    // Fondo semi-transparente
+    // ============================================
+    // Overlay semi-transparente para mejor legibilidad
+    // ============================================
     sf::RectangleShape background(sf::Vector2f(window.getSize().x, window.getSize().y));
-    background.setFillColor(sf::Color(0, 0, 0, 150)); // Reducir opacidad para ver mejor la imagen
+    background.setFillColor(sf::Color(0, 0, 0, 150)); // Oscurecer para ver mejor el texto
     window.draw(background);
     
-    // Título del juego
+    // ============================================
+    // TÍTULO DEL JUEGO
+    // ============================================
     sf::Text title("BUSCAPLAGAS", font, 80);
     title.setFillColor(sf::Color::Green);
     title.setStyle(sf::Text::Bold);
@@ -37,14 +68,18 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     title.setPosition((window.getSize().x - titleBounds.width) / 2, 100);
     window.draw(title);
     
-    // Subtítulo
+    // ============================================
+    // SUBTÍTULO - Descripción del juego
+    // ============================================
     sf::Text subtitle("Encuentra las plagas antes de que te alcancen", font, 24);
     subtitle.setFillColor(sf::Color::White);
     sf::FloatRect subtitleBounds = subtitle.getLocalBounds();
     subtitle.setPosition((window.getSize().x - subtitleBounds.width) / 2, 200);
     window.draw(subtitle);
     
-    // Botón Jugar
+    // ============================================
+    // BOTÓN JUGAR - Verde
+    // ============================================
     sf::RectangleShape playButton(sf::Vector2f(300, 60));
     playButton.setPosition((window.getSize().x - 300) / 2, 320);
     playButton.setFillColor(sf::Color(0, 150, 0));
@@ -58,7 +93,10 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     playText.setPosition((window.getSize().x - playBounds.width) / 2, 330);
     window.draw(playText);
     
-    // Botón Dificultad
+    // ============================================
+    // BOTÓN DIFICULTAD - Naranja
+    // Muestra la dificultad actual seleccionada
+    // ============================================
     sf::RectangleShape difficultyButton(sf::Vector2f(300, 60));
     difficultyButton.setPosition((window.getSize().x - 300) / 2, 400);
     difficultyButton.setFillColor(sf::Color(150, 100, 0));
@@ -66,6 +104,7 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     difficultyButton.setOutlineThickness(3);
     window.draw(difficultyButton);
     
+    // Determinar texto de dificultad a mostrar
     std::string diffText;
     if (currentDifficulty == EASY) diffText = "FACIL";
     else if (currentDifficulty == MEDIUM) diffText = "MEDIO";
@@ -77,7 +116,8 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     diffLabel.setPosition((window.getSize().x - diffBounds.width) / 2, 413);
     window.draw(diffLabel);
     
-    // Botón Enemigos ON/OFF
+    // ============================================
+    // BOTÓN ENEMIGOS ON/OFF
     sf::RectangleShape enemiesButton(sf::Vector2f(300, 60));
     enemiesButton.setPosition((window.getSize().x - 300) / 2, 480);
     enemiesButton.setFillColor(sf::Color(100, 100, 100));
@@ -108,7 +148,7 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
     window.draw(instructionsText);
     
     // Botón Salir (solo cuando submenú NO está abierto)
-    if (!showDifficultyMenu) {
+    if (!showDifficultyMenu && !showSoundMenu) {
         sf::RectangleShape exitButton(sf::Vector2f(300, 60));
         exitButton.setPosition((window.getSize().x - 300) / 2, 640);
         exitButton.setFillColor(sf::Color(150, 0, 0));
@@ -121,6 +161,27 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
         sf::FloatRect exitBounds = exitText.getLocalBounds();
         exitText.setPosition((window.getSize().x - exitBounds.width) / 2, 650);
         window.draw(exitText);
+    }
+    
+    // ============================================
+    // BOTÓN SONIDO - Esquina superior derecha
+    // ============================================
+    sf::RectangleShape soundButton(sf::Vector2f(100, 50));
+    soundButton.setPosition(window.getSize().x - 120, 20);
+    soundButton.setFillColor(sf::Color(150, 150, 0));
+    soundButton.setOutlineColor(sf::Color::White);
+    soundButton.setOutlineThickness(2);
+    window.draw(soundButton);
+    
+    sf::Text soundText("SONIDO", font, 16);
+    soundText.setFillColor(sf::Color::White);
+    sf::FloatRect soundBounds = soundText.getLocalBounds();
+    soundText.setPosition(window.getSize().x - 105, 25);
+    window.draw(soundText);
+    
+    // Mostrar submenú de sonido si está abierto
+    if (showSoundMenu) {
+        drawSoundMenu(window, font);
     }
     
     // Mostrar submenú de dificultad si está abierto
@@ -187,6 +248,121 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficu
         closeHint.setPosition((window.getSize().x - closeHintBounds.width) / 2, 560);
         window.draw(closeHint);
     }
+}
+
+// ============================================
+// MÉTODO: Dibujar menú de sonido
+// Renderiza opciones para controlar volumen y música
+// ============================================
+void GameState::drawSoundMenu(sf::RenderWindow& window, const sf::Font& font) {
+    // Fondo oscuro para el submenú
+    sf::RectangleShape submenuBackground(sf::Vector2f(window.getSize().x, window.getSize().y));
+    submenuBackground.setFillColor(sf::Color(0, 0, 0, 150));
+    window.draw(submenuBackground);
+    
+    // Panel del menú de sonido
+    sf::RectangleShape soundPanel(sf::Vector2f(400, 350));
+    soundPanel.setPosition((window.getSize().x - 400) / 2, (window.getSize().y - 350) / 2);
+    soundPanel.setFillColor(sf::Color(40, 40, 40));
+    soundPanel.setOutlineColor(sf::Color(150, 150, 0));
+    soundPanel.setOutlineThickness(3);
+    window.draw(soundPanel);
+    
+    // Título del menú de sonido
+    sf::Text soundMenuTitle("SONIDO", font, 40);
+    soundMenuTitle.setFillColor(sf::Color(150, 150, 0));
+    soundMenuTitle.setStyle(sf::Text::Bold);
+    sf::FloatRect titleBounds = soundMenuTitle.getLocalBounds();
+    soundMenuTitle.setPosition((window.getSize().x - titleBounds.width) / 2, (window.getSize().y - 350) / 2 + 15);
+    window.draw(soundMenuTitle);
+    
+    // Volumen de música
+    sf::Text musicVolumeLabel("Musica: " + std::to_string(static_cast<int>(musicVolume)) + "%", font, 18);
+    musicVolumeLabel.setFillColor(sf::Color::White);
+    musicVolumeLabel.setPosition((window.getSize().x - 400) / 2 + 20, (window.getSize().y - 350) / 2 + 80);
+    window.draw(musicVolumeLabel);
+    
+    // Botones para música: -
+    sf::RectangleShape musicMinusBtn(sf::Vector2f(50, 40));
+    musicMinusBtn.setPosition((window.getSize().x - 400) / 2 + 20, (window.getSize().y - 350) / 2 + 110);
+    musicMinusBtn.setFillColor(sf::Color(80, 80, 80));
+    musicMinusBtn.setOutlineColor(sf::Color::White);
+    musicMinusBtn.setOutlineThickness(2);
+    window.draw(musicMinusBtn);
+    
+    sf::Text musicMinusText("-", font, 24);
+    musicMinusText.setFillColor(sf::Color::White);
+    sf::FloatRect minusBounds = musicMinusText.getLocalBounds();
+    musicMinusText.setPosition((window.getSize().x - 400) / 2 + 32, (window.getSize().y - 350) / 2 + 115);
+    window.draw(musicMinusText);
+    
+    // Botones para música: +
+    sf::RectangleShape musicPlusBtn(sf::Vector2f(50, 40));
+    musicPlusBtn.setPosition((window.getSize().x - 400) / 2 + 330, (window.getSize().y - 350) / 2 + 110);
+    musicPlusBtn.setFillColor(sf::Color(80, 80, 80));
+    musicPlusBtn.setOutlineColor(sf::Color::White);
+    musicPlusBtn.setOutlineThickness(2);
+    window.draw(musicPlusBtn);
+    
+    sf::Text musicPlusText("+", font, 24);
+    musicPlusText.setFillColor(sf::Color::White);
+    sf::FloatRect plusBounds = musicPlusText.getLocalBounds();
+    musicPlusText.setPosition((window.getSize().x - 400) / 2 + 342, (window.getSize().y - 350) / 2 + 115);
+    window.draw(musicPlusText);
+    
+    // Volumen de efectos
+    sf::Text soundVolumeLabel("Efectos: " + std::to_string(static_cast<int>(soundVolume)) + "%", font, 18);
+    soundVolumeLabel.setFillColor(sf::Color::White);
+    soundVolumeLabel.setPosition((window.getSize().x - 400) / 2 + 20, (window.getSize().y - 350) / 2 + 170);
+    window.draw(soundVolumeLabel);
+    
+    // Botones para efectos: -
+    sf::RectangleShape soundMinusBtn(sf::Vector2f(50, 40));
+    soundMinusBtn.setPosition((window.getSize().x - 400) / 2 + 20, (window.getSize().y - 350) / 2 + 200);
+    soundMinusBtn.setFillColor(sf::Color(80, 80, 80));
+    soundMinusBtn.setOutlineColor(sf::Color::White);
+    soundMinusBtn.setOutlineThickness(2);
+    window.draw(soundMinusBtn);
+    
+    sf::Text soundMinusText("-", font, 24);
+    soundMinusText.setFillColor(sf::Color::White);
+    soundMinusText.setPosition((window.getSize().x - 400) / 2 + 32, (window.getSize().y - 350) / 2 + 205);
+    window.draw(soundMinusText);
+    
+    // Botones para efectos: +
+    sf::RectangleShape soundPlusBtn(sf::Vector2f(50, 40));
+    soundPlusBtn.setPosition((window.getSize().x - 400) / 2 + 330, (window.getSize().y - 350) / 2 + 200);
+    soundPlusBtn.setFillColor(sf::Color(80, 80, 80));
+    soundPlusBtn.setOutlineColor(sf::Color::White);
+    soundPlusBtn.setOutlineThickness(2);
+    window.draw(soundPlusBtn);
+    
+    sf::Text soundPlusText("+", font, 24);
+    soundPlusText.setFillColor(sf::Color::White);
+    soundPlusText.setPosition((window.getSize().x - 400) / 2 + 342, (window.getSize().y - 350) / 2 + 205);
+    window.draw(soundPlusText);
+    
+    // Botón ON/OFF para música
+    sf::RectangleShape musicToggleBtn(sf::Vector2f(200, 45));
+    musicToggleBtn.setPosition((window.getSize().x - 200) / 2, (window.getSize().y - 350) / 2 + 270);
+    musicToggleBtn.setFillColor(musicEnabled ? sf::Color(0, 150, 0) : sf::Color(150, 0, 0));
+    musicToggleBtn.setOutlineColor(sf::Color::White);
+    musicToggleBtn.setOutlineThickness(2);
+    window.draw(musicToggleBtn);
+    
+    std::string musicText = musicEnabled ? "Musica: ON" : "Musica: OFF";
+    sf::Text musicToggleText(musicText, font, 20);
+    musicToggleText.setFillColor(sf::Color::White);
+    sf::FloatRect musicToggleBounds = musicToggleText.getLocalBounds();
+    musicToggleText.setPosition((window.getSize().x - musicToggleBounds.width) / 2, (window.getSize().y - 350) / 2 + 277);
+    window.draw(musicToggleText);
+    
+    // Instrucción para cerrar
+    sf::Text closeSoundHint("(Presiona ESC para cerrar)", font, 14);
+    closeSoundHint.setFillColor(sf::Color::Cyan);
+    sf::FloatRect closeSoundBounds = closeSoundHint.getLocalBounds();
+    closeSoundHint.setPosition((window.getSize().x - closeSoundBounds.width) / 2, (window.getSize().y - 350) / 2 + 330);
+    window.draw(closeSoundHint);
 }
 
 
@@ -384,14 +560,14 @@ void GameState::drawVictory(sf::RenderWindow& window, const sf::Font& font, floa
     window.draw(instructions);
 }
 
-bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window, bool& showDifficultyMenu) {
+bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window, bool& showDifficultyMenu, bool& showSoundMenu) {
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         int mouseX = event.mouseButton.x;
         int mouseY = event.mouseButton.y;
         
-        // Si el submenú está abierto, no procesar otros botones del menú
-        if (showDifficultyMenu) {
-            return false; // Dejar que handleDifficultyMenuInput maneje los clicks
+        // Si algún submenú está abierto, no procesar otros botones del menú
+        if (showDifficultyMenu || showSoundMenu) {
+            return false; // Dejar que los respectivos handlers manejen los clicks
         }
         
         // Botón Jugar
@@ -429,12 +605,23 @@ bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window, bool
             window.close();
             return true;
         }
+        
+        // Botón Sonido (esquina superior derecha)
+        if (mouseX >= window.getSize().x - 120 && mouseX <= window.getSize().x - 20 &&
+            mouseY >= 20 && mouseY <= 70) {
+            showSoundMenu = !showSoundMenu;
+            return true;
+        }
     }
     
-    // ESC para cerrar submenú de dificultad
+    // ESC para cerrar submenús
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
         if (showDifficultyMenu) {
             showDifficultyMenu = false;
+            return true;
+        }
+        if (showSoundMenu) {
+            showSoundMenu = false;
             return true;
         }
     }
@@ -467,6 +654,61 @@ int GameState::handleDifficultyMenuInput(sf::Event& event, sf::RenderWindow& win
     }
     
     return -1; // No selection
+}
+
+// ============================================
+// MÉTODO: Manejar input del menú de sonido
+// Procesa clicks en botones de volumen y control de música
+// ============================================
+int GameState::handleSoundMenuInput(sf::Event& event, sf::RenderWindow& window) {
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+        int mouseX = event.mouseButton.x;
+        int mouseY = event.mouseButton.y;
+        
+        int panelX = (window.getSize().x - 400) / 2;  // Posición X del panel
+        int panelY = (window.getSize().y - 350) / 2;  // Posición Y del panel
+        
+        // Botón menos para música
+        if (mouseX >= panelX + 20 && mouseX <= panelX + 70 &&
+            mouseY >= panelY + 110 && mouseY <= panelY + 150) {
+            musicVolume = (musicVolume > 0) ? musicVolume - 10 : 0;
+            AudioManager::getInstance().setMusicVolume(musicVolume);
+            return 1;
+        }
+        
+        // Botón más para música
+        if (mouseX >= panelX + 330 && mouseX <= panelX + 380 &&
+            mouseY >= panelY + 110 && mouseY <= panelY + 150) {
+            musicVolume = (musicVolume < 100) ? musicVolume + 10 : 100;
+            AudioManager::getInstance().setMusicVolume(musicVolume);
+            return 1;
+        }
+        
+        // Botón menos para efectos
+        if (mouseX >= panelX + 20 && mouseX <= panelX + 70 &&
+            mouseY >= panelY + 200 && mouseY <= panelY + 240) {
+            soundVolume = (soundVolume > 0) ? soundVolume - 10 : 0;
+            AudioManager::getInstance().setSoundVolume(soundVolume);
+            return 1;
+        }
+        
+        // Botón más para efectos
+        if (mouseX >= panelX + 330 && mouseX <= panelX + 380 &&
+            mouseY >= panelY + 200 && mouseY <= panelY + 240) {
+            soundVolume = (soundVolume < 100) ? soundVolume + 10 : 100;
+            AudioManager::getInstance().setSoundVolume(soundVolume);
+            return 1;
+        }
+        
+        // Botón ON/OFF para música
+        if (mouseX >= (window.getSize().x - 200) / 2 && mouseX <= (window.getSize().x - 200) / 2 + 200 &&
+            mouseY >= panelY + 270 && mouseY <= panelY + 315) {
+            musicEnabled = !musicEnabled;
+            return 2;
+        }
+    }
+    
+    return -1;
 }
 
 

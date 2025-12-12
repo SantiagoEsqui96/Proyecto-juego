@@ -4,46 +4,67 @@
 #include <random>
 #include <cmath>
 
+// ============================================
+// CONSTRUCTOR - Inicializa el tablero
+// ============================================
 Tablero::Tablero(int filas, int columnas, int minas)
     : filas(filas), columnas(columnas), minas(minas), finDelJuego(false), victoria(false), primerClick(true), minasGeneradas(false), tieneAntidotoDisponible(true), usosDetectorMinas(5) {
+    // Crear matriz de celdas con las dimensiones especificadas
     celdas.resize(filas, std::vector<Celda>(columnas));
-    // Cargar textura del insecto
+    
+    // Cargar texturas para renderizar insectos y banderas
     texturaInsecto.loadFromFile("assets/images/insecto.png");
     texturaBandera.loadFromFile("assets/images/Bandera1.png");
 }
 
+// ============================================
+// MÉTODO: Descubrir celda
+// - En el primer clic: genera las minas evitando esa celda
+// - Revela la celda y expande si tiene 0 minas cercanas
+// - Verifica victoria automáticamente
+// ============================================
 void Tablero::descubrir(int fila, int columna) {
+    // Validar que la celda está dentro del tablero
     if (finDelJuego || fila < 0 || columna < 0 || fila >= filas || columna >= columnas)
         return;
     
-    // Si es el primer clic, generar minas evitando la celda clickeada
+    // ============================================
+    // PRIMER CLIC - Generar minas de forma segura
+    // ============================================
     if (primerClick) {
         primerClick = false;
         
-        // Generar minas ahora, evitando la celda donde se hizo clic
+        // Generar minas en celdas aleatorias, evitando la celda clickeada y sus alrededores
         if (!minasGeneradas) {
             minasGeneradas = true;
             int minasColocadas = 0;
+            
             while (minasColocadas < minas) {
                 int i = rand() % filas;
                 int j = rand() % columnas;
-                // No poner mina donde el usuario clickeó, ni en celdas cercanas (radio de 2)
+                
+                // NO poner mina donde el usuario clickeó, ni en celdas cercanas (radio de 2)
+                // Esto garantiza que el primer clic siempre es seguro y expande
                 if ((i == fila && j == columna) ||
                     (abs(i - fila) <= 2 && abs(j - columna) <= 2)) {
                     continue;
                 }
+                
+                // Solo poner la mina si la celda no tiene una ya
                 if (!celdas[i][j].esMina()) {
                     celdas[i][j].setMina(true);
                     minasColocadas++;
                 }
             }
+            
+            // Calcular cuántas minas rodean cada celda (necesario para mostrar números)
             calcularMinasAlrededor();
         }
         
-        // Descubrir donde el usuario clickeó
+        // Marcar la celda clickeada como descubierta
         celdas[fila][columna].setEstado(Celda::Descubierta);
         
-        // Expandir recursivamente si tiene 0 minas alrededor
+        // Si la celda tiene 0 minas cercanas, expandir automáticamente (flood-fill)
         if (celdas[fila][columna].getMinasAlrededor() == 0) {
             descubrirRecursivo(fila, columna);
         }
@@ -51,29 +72,43 @@ void Tablero::descubrir(int fila, int columna) {
         return;
     }
     
+    // ============================================
+    // CLICS POSTERIORES - Revelar celda
+    // ============================================
     Celda& celda = celdas[fila][columna];
+    
+    // No hacer nada si la celda ya está descubierta o marcada
     if (celda.getEstado() == Celda::Descubierta || celda.getEstado() == Celda::Marcada)
         return;
     
+    // Marcar celda como descubierta
     celda.setEstado(Celda::Descubierta);
     
-    // Verificar si hay una bomba temporal en esta celda
+    // Verificar si hay una bomba temporal en esta celda (creada por enemigos)
     activarBombaEnCelda(fila, columna);
     
+    // ============================================
+    // MANEJO DE MINAS Y ANTÍDOTO
+    // ============================================
     if (celda.esMina()) {
-        // Si tiene antídoto disponible, usarlo en lugar de perder
+        // Si el jugador tiene antídoto disponible, usarlo automáticamente
         if (tieneAntidotoDisponible) {
             usarAntidoto();
             std::cout << "¡ANTÍDOTO ACTIVADO! Sobreviviste a la mina." << std::endl;
         } else {
+            // Sin antídoto: fin del juego por tocar una mina
             finDelJuego = true;
             victoria = false;
         }
     } else if (celda.getMinasAlrededor() == 0) {
+        // Si la celda no tiene minas cercanas, expandir recursivamente (flood-fill)
         descubrirRecursivo(fila, columna);
     }
     
-    // Verificar victoria
+    // ============================================
+    // VERIFICACIÓN DE VICTORIA
+    // ============================================
+    // Contar celdas descubiertas que no son minas
     int descubiertas = 0;
     for (int i = 0; i < filas; ++i)
         for (int j = 0; j < columnas; ++j)
@@ -237,7 +272,7 @@ void Tablero::marcarMinaAlAzar() {
         int idx = rand() % minasOcultas.size();
         celdas[minasOcultas[idx].first][minasOcultas[idx].second].setEstado(Celda::Marcada);
         usosDetectorMinas--;
-        std::cout << "�MINA MARCADA! Usos restantes: " << usosDetectorMinas << std::endl;
+        std::cout << "�MINA MARCADA! Usos restantes: " << usosDetectorMinas << std::endl;
     }
 }
 
@@ -326,7 +361,7 @@ bool Tablero::activarBombaEnCelda(int fila, int columna) {
             } else {
                 finDelJuego = true;
                 victoria = false;
-                std::cout << "�BOMBA TEMPORAL! GAME OVER" << std::endl;
+                std::cout << "�BOMBA TEMPORAL! GAME OVER" << std::endl;
             }
             
             // Remover la bomba después de ser activada
