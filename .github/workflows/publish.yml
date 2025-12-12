@@ -1,0 +1,32 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up C++
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ libsfml-dev libbox2d-dev
+      
+      - name: Create build directory
+        run: mkdir -p build
+      
+      - name: Compile game
+        run: |
+          cd build
+          g++ ../src/00_Ventana.cpp ../src/Tablero.cpp ../src/Enemigo.cpp ../src/GameState.cpp ../src/AudioManager.cpp -o Buscaplagas -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lbox2d -I../include
+      
+      - name: Verify build
+        run: test -f build/Buscaplagas && echo "Build successful!"
