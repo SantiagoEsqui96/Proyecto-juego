@@ -221,7 +221,7 @@ void Enemigo::verificarYTeletransportar(const std::vector<std::vector<int>>& est
     }
 }
 
-void Enemigo::dibujar(sf::RenderWindow& window, float cellSize) const {
+void Enemigo::dibujar(sf::RenderWindow& window, float cellSize, float offsetX, float offsetY) const {
     if (texturasCargadas) {
         // Dibujar sprite de la plaga
         // Calcular escala para que la imagen se ajuste a la celda
@@ -233,29 +233,29 @@ void Enemigo::dibujar(sf::RenderWindow& window, float cellSize) const {
         float scale = std::min(scaleX, scaleY) * 1.6f; // 1.6 para hacer la plaga más grande
         
         sprite.setScale(scale, scale);
-        sprite.setPosition(columna * cellSize, fila * cellSize);
+        sprite.setPosition(columna * cellSize + offsetX, fila * cellSize + offsetY);
         
         // Centrar el sprite en la celda
         sf::FloatRect bounds = sprite.getGlobalBounds();
-        float offsetX = (cellSize - bounds.width) / 2;
-        float offsetY = (cellSize - bounds.height) / 2;
-        sprite.setPosition(columna * cellSize + offsetX, fila * cellSize + offsetY);
+        float spriteOffsetX = (cellSize - bounds.width) / 2;
+        float spriteOffsetY = (cellSize - bounds.height) / 2;
+        sprite.setPosition(columna * cellSize + offsetX + spriteOffsetX, fila * cellSize + offsetY + spriteOffsetY);
         
         window.draw(sprite);
     } else {
         // Fallback: Dibujar enemigo como un círculo rojo si no se cargó la textura
         sf::CircleShape enemigo(cellSize / 3);
         enemigo.setFillColor(sf::Color::Red);
-        enemigo.setPosition(columna * cellSize + cellSize / 3, fila * cellSize + cellSize / 3);
+        enemigo.setPosition(columna * cellSize + offsetX + cellSize / 3, fila * cellSize + offsetY + cellSize / 3);
         window.draw(enemigo);
         
         // Agregar ojos para más detalle
         sf::CircleShape ojo(cellSize / 8);
         ojo.setFillColor(sf::Color::White);
-        ojo.setPosition(columna * cellSize + cellSize / 4, fila * cellSize + cellSize / 4);
+        ojo.setPosition(columna * cellSize + offsetX + cellSize / 4, fila * cellSize + offsetY + cellSize / 4);
         window.draw(ojo);
         
-        ojo.setPosition(columna * cellSize + cellSize * 0.55f, fila * cellSize + cellSize / 4);
+        ojo.setPosition(columna * cellSize + offsetX + cellSize * 0.55f, fila * cellSize + offsetY + cellSize / 4);
         window.draw(ojo);
     }
 }

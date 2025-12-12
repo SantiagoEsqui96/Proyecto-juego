@@ -15,7 +15,7 @@ void GameState::setState(State newState) {
     currentState = newState;
 }
 
-void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
+void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font, Difficulty currentDifficulty, bool showDifficultyMenu) {
     // Dibujar imagen de fondo
     backgroundSprite.setTexture(backgroundTexture);
     backgroundSprite.setScale(
@@ -58,10 +58,29 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     playText.setPosition((window.getSize().x - playBounds.width) / 2, 330);
     window.draw(playText);
     
+    // Botón Dificultad
+    sf::RectangleShape difficultyButton(sf::Vector2f(300, 60));
+    difficultyButton.setPosition((window.getSize().x - 300) / 2, 400);
+    difficultyButton.setFillColor(sf::Color(150, 100, 0));
+    difficultyButton.setOutlineColor(sf::Color::White);
+    difficultyButton.setOutlineThickness(3);
+    window.draw(difficultyButton);
+    
+    std::string diffText;
+    if (currentDifficulty == EASY) diffText = "FACIL";
+    else if (currentDifficulty == MEDIUM) diffText = "MEDIO";
+    else diffText = "DIFICIL";
+    
+    sf::Text diffLabel("DIFICULTAD: " + diffText, font, 18);
+    diffLabel.setFillColor(sf::Color::White);
+    sf::FloatRect diffBounds = diffLabel.getLocalBounds();
+    diffLabel.setPosition((window.getSize().x - diffBounds.width) / 2, 413);
+    window.draw(diffLabel);
+    
     // Botón Enemigos ON/OFF
     sf::RectangleShape enemiesButton(sf::Vector2f(300, 60));
-    enemiesButton.setPosition((window.getSize().x - 300) / 2, 400);
-    enemiesButton.setFillColor(sf::Color(150, 100, 0));
+    enemiesButton.setPosition((window.getSize().x - 300) / 2, 480);
+    enemiesButton.setFillColor(sf::Color(100, 100, 100));
     enemiesButton.setOutlineColor(sf::Color::White);
     enemiesButton.setOutlineThickness(3);
     window.draw(enemiesButton);
@@ -71,37 +90,105 @@ void GameState::drawMenu(sf::RenderWindow& window, const sf::Font& font) {
     sf::Text enemiesLabel(enemiesText, font, 20);
     enemiesLabel.setFillColor(sf::Color::White);
     sf::FloatRect enemiesBounds = enemiesLabel.getLocalBounds();
-    enemiesLabel.setPosition((window.getSize().x - enemiesBounds.width) / 2, 413);
+    enemiesLabel.setPosition((window.getSize().x - enemiesBounds.width) / 2, 493);
     window.draw(enemiesLabel);
     
     // Botón Instrucciones
     sf::RectangleShape instructionsButton(sf::Vector2f(300, 60));
-    instructionsButton.setPosition((window.getSize().x - 300) / 2, 480);
+    instructionsButton.setPosition((window.getSize().x - 300) / 2, 560);
     instructionsButton.setFillColor(sf::Color(0, 100, 200));
     instructionsButton.setOutlineColor(sf::Color::White);
     instructionsButton.setOutlineThickness(3);
     window.draw(instructionsButton);
     
-    sf::Text instructionsText("INSTRUCCIONES", font, 26);
+    sf::Text instructionsText("INSTRUCCIONES", font, 22);
     instructionsText.setFillColor(sf::Color::White);
     sf::FloatRect instrBounds = instructionsText.getLocalBounds();
-    instructionsText.setPosition((window.getSize().x - instrBounds.width) / 2, 490);
+    instructionsText.setPosition((window.getSize().x - instrBounds.width) / 2, 570);
     window.draw(instructionsText);
     
-    // Botón Salir
-    sf::RectangleShape exitButton(sf::Vector2f(300, 60));
-    exitButton.setPosition((window.getSize().x - 300) / 2, 560);
-    exitButton.setFillColor(sf::Color(150, 0, 0));
-    exitButton.setOutlineColor(sf::Color::White);
-    exitButton.setOutlineThickness(3);
-    window.draw(exitButton);
+    // Botón Salir (solo cuando submenú NO está abierto)
+    if (!showDifficultyMenu) {
+        sf::RectangleShape exitButton(sf::Vector2f(300, 60));
+        exitButton.setPosition((window.getSize().x - 300) / 2, 640);
+        exitButton.setFillColor(sf::Color(150, 0, 0));
+        exitButton.setOutlineColor(sf::Color::White);
+        exitButton.setOutlineThickness(3);
+        window.draw(exitButton);
+        
+        sf::Text exitText("SALIR", font, 30);
+        exitText.setFillColor(sf::Color::White);
+        sf::FloatRect exitBounds = exitText.getLocalBounds();
+        exitText.setPosition((window.getSize().x - exitBounds.width) / 2, 650);
+        window.draw(exitText);
+    }
     
-    sf::Text exitText("SALIR", font, 30);
-    exitText.setFillColor(sf::Color::White);
-    sf::FloatRect exitBounds = exitText.getLocalBounds();
-    exitText.setPosition((window.getSize().x - exitBounds.width) / 2, 570);
-    window.draw(exitText);
+    // Mostrar submenú de dificultad si está abierto
+    if (showDifficultyMenu) {
+        // Fondo oscuro para el submenú
+        sf::RectangleShape submenuBackground(sf::Vector2f(window.getSize().x, window.getSize().y));
+        submenuBackground.setFillColor(sf::Color(0, 0, 0, 100));
+        window.draw(submenuBackground);
+        
+        // Título del submenú
+        sf::Text submenuTitle("SELECCIONA DIFICULTAD", font, 40);
+        submenuTitle.setFillColor(sf::Color::Yellow);
+        submenuTitle.setStyle(sf::Text::Bold);
+        sf::FloatRect submenuTitleBounds = submenuTitle.getLocalBounds();
+        submenuTitle.setPosition((window.getSize().x - submenuTitleBounds.width) / 2, 150);
+        window.draw(submenuTitle);
+        
+        // Botón FACIL
+        sf::RectangleShape easyButton(sf::Vector2f(250, 70));
+        easyButton.setPosition((window.getSize().x - 250) / 2, 260);
+        easyButton.setFillColor(currentDifficulty == EASY ? sf::Color(0, 200, 0) : sf::Color(0, 100, 0));
+        easyButton.setOutlineColor(sf::Color::White);
+        easyButton.setOutlineThickness(3);
+        window.draw(easyButton);
+        
+        sf::Text easyLabel("FACIL\n20x20 - 40 minas", font, 16);
+        easyLabel.setFillColor(sf::Color::White);
+        sf::FloatRect easyBounds = easyLabel.getLocalBounds();
+        easyLabel.setPosition((window.getSize().x - easyBounds.width) / 2, 273);
+        window.draw(easyLabel);
+        
+        // Botón MEDIO (predeterminado)
+        sf::RectangleShape mediumButton(sf::Vector2f(250, 70));
+        mediumButton.setPosition((window.getSize().x - 250) / 2, 360);
+        mediumButton.setFillColor(currentDifficulty == MEDIUM ? sf::Color(200, 200, 0) : sf::Color(150, 100, 0));
+        mediumButton.setOutlineColor(sf::Color::White);
+        mediumButton.setOutlineThickness(3);
+        window.draw(mediumButton);
+        
+        sf::Text mediumLabel("MEDIO\n30x30 - 135 minas", font, 16);
+        mediumLabel.setFillColor(sf::Color::White);
+        sf::FloatRect mediumBounds = mediumLabel.getLocalBounds();
+        mediumLabel.setPosition((window.getSize().x - mediumBounds.width) / 2, 373);
+        window.draw(mediumLabel);
+        
+        // Botón DIFÍCIL
+        sf::RectangleShape hardButton(sf::Vector2f(250, 70));
+        hardButton.setPosition((window.getSize().x - 250) / 2, 460);
+        hardButton.setFillColor(currentDifficulty == HARD ? sf::Color(200, 0, 0) : sf::Color(100, 0, 0));
+        hardButton.setOutlineColor(sf::Color::White);
+        hardButton.setOutlineThickness(3);
+        window.draw(hardButton);
+        
+        sf::Text hardLabel("DIFICIL\n40x40 - 350 minas", font, 16);
+        hardLabel.setFillColor(sf::Color::White);
+        sf::FloatRect hardBounds = hardLabel.getLocalBounds();
+        hardLabel.setPosition((window.getSize().x - hardBounds.width) / 2, 473);
+        window.draw(hardLabel);
+        
+        // Instrucción para cerrar submenú
+        sf::Text closeHint("(Presiona ESC para cerrar)", font, 14);
+        closeHint.setFillColor(sf::Color::Cyan);
+        sf::FloatRect closeHintBounds = closeHint.getLocalBounds();
+        closeHint.setPosition((window.getSize().x - closeHintBounds.width) / 2, 560);
+        window.draw(closeHint);
+    }
 }
+
 
 void GameState::drawPause(sf::RenderWindow& window, const sf::Font& font) {
     // Fondo semi-transparente oscuro
@@ -160,11 +247,20 @@ void GameState::drawPause(sf::RenderWindow& window, const sf::Font& font) {
     window.draw(menuText);
 }
 
-void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font) {
-    // Fondo semi-transparente
-    sf::RectangleShape background(sf::Vector2f(window.getSize().x, window.getSize().y));
-    background.setFillColor(sf::Color(0, 0, 0, 220));
-    window.draw(background);
+void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font, const sf::Sprite& background) {
+    // Dibujar fondo escalado a la ventana completa
+    sf::Sprite scaledBackground = background;
+    sf::Vector2u windowSize = window.getSize();
+    sf::Vector2u textureSize = scaledBackground.getTexture()->getSize();
+    float scaleX = static_cast<float>(windowSize.x) / textureSize.x;
+    float scaleY = static_cast<float>(windowSize.y) / textureSize.y;
+    scaledBackground.setScale(scaleX, scaleY);
+    window.draw(scaledBackground);
+    
+    // Fondo semi-transparente oscuro sobre el fondo
+    sf::RectangleShape overlay(sf::Vector2f(window.getSize().x, window.getSize().y));
+    overlay.setFillColor(sf::Color(0, 0, 0, 150));
+    window.draw(overlay);
     
     // Título
     sf::Text title("INSTRUCCIONES", font, 50);
@@ -196,7 +292,7 @@ void GameState::drawInstructions(sf::RenderWindow& window, const sf::Font& font)
         "las ultimas celdas, por eso necesitas el escudo para acabar de revelar todo",
         "",
         "PELIGROS:",
-        "- El enemigo rojo te persigue y deja bombas cada 5 casillas",
+        "- Los enemigos rojo y morado te persiguen y dejan bombas cada 5 casillas",
         "- Las bombas duran 20 segundos (cuadrados amarillos)",
         "- Si el enemigo te alcanza, pierdes (a menos que tengas escudo)",
         "",
@@ -257,7 +353,7 @@ void GameState::drawVictory(sf::RenderWindow& window, const sf::Font& font, floa
     window.draw(background);
     
     // Título VICTORIA
-    sf::Text title("¡VICTORIA!", font, 80);
+    sf::Text title("VICTORIA!", font, 80);
     title.setFillColor(sf::Color::Green);
     title.setStyle(sf::Text::Bold);
     sf::FloatRect titleBounds = title.getLocalBounds();
@@ -265,7 +361,7 @@ void GameState::drawVictory(sf::RenderWindow& window, const sf::Font& font, floa
     window.draw(title);
     
     // Mensaje de felicitación
-    sf::Text congrats("¡Encontraste todas las plagas!", font, 30);
+    sf::Text congrats("Encontraste todas las plagas!", font, 30);
     congrats.setFillColor(sf::Color::White);
     sf::FloatRect congratsBounds = congrats.getLocalBounds();
     congrats.setPosition((window.getSize().x - congratsBounds.width) / 2, 320);
@@ -288,10 +384,15 @@ void GameState::drawVictory(sf::RenderWindow& window, const sf::Font& font, floa
     window.draw(instructions);
 }
 
-bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window) {
+bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window, bool& showDifficultyMenu) {
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         int mouseX = event.mouseButton.x;
         int mouseY = event.mouseButton.y;
+        
+        // Si el submenú está abierto, no procesar otros botones del menú
+        if (showDifficultyMenu) {
+            return false; // Dejar que handleDifficultyMenuInput maneje los clicks
+        }
         
         // Botón Jugar
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
@@ -300,9 +401,16 @@ bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window) {
             return true;
         }
         
-        // Botón Enemigos ON/OFF
+        // Botón Dificultad (abre/cierra submenú)
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
             mouseY >= 400 && mouseY <= 460) {
+            showDifficultyMenu = !showDifficultyMenu;
+            return true;
+        }
+        
+        // Botón Enemigos ON/OFF
+        if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
+            mouseY >= 480 && mouseY <= 540) {
             extern bool enemigosActivos;
             enemigosActivos = !enemigosActivos;
             return true;
@@ -310,20 +418,57 @@ bool GameState::handleMenuInput(sf::Event& event, sf::RenderWindow& window) {
         
         // Botón Instrucciones
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
-            mouseY >= 480 && mouseY <= 540) {
+            mouseY >= 560 && mouseY <= 620) {
             setState(INSTRUCTIONS);
             return true;
         }
         
         // Botón Salir
         if (mouseX >= (window.getSize().x - 300) / 2 && mouseX <= (window.getSize().x + 300) / 2 &&
-            mouseY >= 560 && mouseY <= 620) {
+            mouseY >= 640 && mouseY <= 700) {
             window.close();
             return true;
         }
     }
+    
+    // ESC para cerrar submenú de dificultad
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+        if (showDifficultyMenu) {
+            showDifficultyMenu = false;
+            return true;
+        }
+    }
+    
     return false;
 }
+
+int GameState::handleDifficultyMenuInput(sf::Event& event, sf::RenderWindow& window) {
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+        int mouseX = event.mouseButton.x;
+        int mouseY = event.mouseButton.y;
+        
+        // Botón FACIL
+        if (mouseX >= (window.getSize().x - 250) / 2 && mouseX <= (window.getSize().x + 250) / 2 &&
+            mouseY >= 260 && mouseY <= 330) {
+            return 0; // EASY
+        }
+        
+        // Botón MEDIO
+        if (mouseX >= (window.getSize().x - 250) / 2 && mouseX <= (window.getSize().x + 250) / 2 &&
+            mouseY >= 360 && mouseY <= 430) {
+            return 1; // MEDIUM
+        }
+        
+        // Botón DIFÍCIL
+        if (mouseX >= (window.getSize().x - 250) / 2 && mouseX <= (window.getSize().x + 250) / 2 &&
+            mouseY >= 460 && mouseY <= 530) {
+            return 2; // HARD
+        }
+    }
+    
+    return -1; // No selection
+}
+
 
 int GameState::handlePauseInput(sf::Event& event, sf::RenderWindow& window) {
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
@@ -414,29 +559,32 @@ sf::Color GameState::getProximityColor(int distance) {
 }
 
 void GameState::drawProximityIndicator(sf::RenderWindow& window, int enemyRow, int enemyCol, 
-                                      int playerRow, int playerCol, float cellSize, const sf::Font& font) {
+                                      int playerRow, int playerCol, float cellSize, const sf::Font& font,
+                                      float offsetX, float offsetY, int columnas) {
     int distance = calculateDistance(enemyRow, enemyCol, playerRow, playerCol);
     sf::Color color = getProximityColor(distance);
     
-    // Calcular posición en la esquina superior derecha del tablero
-    float boardWidth = cellSize * 40;  // Asumiendo 40 columnas
+    // Posicionar en la barra lateral, entre el último poder y el contador de plagas
+    float boardWidth = columnas * cellSize;
+    float indicatorX = boardWidth + offsetX + 10;
+    float indicatorY = offsetY + 520;  // Entre los poderes y el contador
     
     // Indicador de proximidad
-    sf::RectangleShape indicator(sf::Vector2f(180, 80));
-    indicator.setPosition(boardWidth + 10, 480);
+    sf::RectangleShape indicator(sf::Vector2f(180, 50));  // Más pequeño para caber mejor
+    indicator.setPosition(indicatorX, indicatorY);
     indicator.setFillColor(sf::Color(50, 50, 50));
     indicator.setOutlineColor(color);
     indicator.setOutlineThickness(3);
     window.draw(indicator);
     
-    sf::Text title("ENEMIGO", font, 16);
+    sf::Text title("ENEMIGO", font, 14);
     title.setFillColor(sf::Color::White);
-    title.setPosition(boardWidth + 50, 490);
+    title.setPosition(indicatorX + 35, indicatorY + 5);
     window.draw(title);
     
-    std::string distText = "Distancia: " + std::to_string(distance);
-    sf::Text distanceText(distText, font, 14);
+    std::string distText = "Dist: " + std::to_string(distance);
+    sf::Text distanceText(distText, font, 12);
     distanceText.setFillColor(color);
-    distanceText.setPosition(boardWidth + 25, 520);
+    distanceText.setPosition(indicatorX + 25, indicatorY + 25);
     window.draw(distanceText);
 }

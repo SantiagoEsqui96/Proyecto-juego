@@ -8,7 +8,7 @@ public:
     Enemigo(int filas, int columnas, const std::string& texturePath = "assets/images/plaga1.png");
     
     void actualizar(float deltaTime, const std::vector<std::vector<int>>& estadoCeldas, bool juegoIniciado, int filaRaton, int colRaton);
-    void dibujar(sf::RenderWindow& window, float cellSize) const;
+    void dibujar(sf::RenderWindow& window, float cellSize, float offsetX = 0.0f, float offsetY = 0.0f) const;
     void verificarYTeletransportar(const std::vector<std::vector<int>>& estadoCeldas);
     void paralizarTemporalmente(float duracion);
     bool estaParalizado() const;

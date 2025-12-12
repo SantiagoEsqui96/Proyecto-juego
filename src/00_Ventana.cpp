@@ -12,6 +12,8 @@ int COLUMNAS = 40;
 int MINAS = 350;
 int CELDA_SIZE = 32.0f;
 float SIDEBAR_WIDTH = 200.0f;
+int dificultad = 1;  // 0: EASY (20x20, 40), 1: MEDIUM (30x30, 135), 2: HARD (40x40, 350) - predeterminado MEDIUM
+bool showDifficultyMenu = false;  // Control para mostrar/ocultar submenú de dificultad
 bool marcarFilaUsado = false;
 bool marcarColumnaUsado = false;
 bool detectorMinasUsado = false;
@@ -23,12 +25,36 @@ bool musicaMenuReproduciendo = false;
 bool enemigosActivos = true;  // Variable para activar/desactivar enemigos
 int ultimaCasillaContadaBomba = 0;  // Rastrear el último punto donde se creó bomba
 int ultimaCasillaContadaBomba2 = 0;  // Rastrear bombas del segundo enemigo
+float boardOffsetX = 0.0f;  // Offset X para centrar el tablero
+float boardOffsetY = 0.0f;  // Offset Y para centrar el tablero
+
+// Función para centrar la ventana en la pantalla
+void centrarVentana(sf::RenderWindow& window) {
+    sf::Vector2u windowSize = window.getSize();
+    sf::Vector2i screenCenter(sf::VideoMode::getDesktopMode().width / 2, sf::VideoMode::getDesktopMode().height / 2);
+    window.setPosition(sf::Vector2i(screenCenter.x - windowSize.x / 2, screenCenter.y - windowSize.y / 2));
+}
 
 // Función para reiniciar el juego
 void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bool& juegoIniciado, 
                     bool& marcarFilaUsado, bool& marcarColumnaUsado, bool& detectorMinasUsado, bool& paralizanteUsado, bool& escudoGanadorUsado,
                     int& ultimaCasillaContadaBomba, int& ultimaCasillaContadaBomba2, float& tiempoJuego, float& tiempoEscudoGanador,
                     AudioManager& audio, bool& musicaReproduciendo, bool& musicaMenuReproduciendo) {
+    // Aplicar dificultad seleccionada
+    if (dificultad == 0) { // EASY
+        FILAS = 20;
+        COLUMNAS = 20;
+        MINAS = 40;
+    } else if (dificultad == 1) { // MEDIUM
+        FILAS = 30;
+        COLUMNAS = 30;
+        MINAS = 135;
+    } else { // HARD
+        FILAS = 40;
+        COLUMNAS = 40;
+        MINAS = 350;
+    }
+    
     delete tablero;
     delete enemigo;
     delete enemigo2;
@@ -48,7 +74,7 @@ void reiniciarJuego(Tablero*& tablero, Enemigo*& enemigo, Enemigo*& enemigo2, bo
     musicaReproduciendo = false;
     musicaMenuReproduciendo = false;
     audio.stopMusic();
-    std::cout << "Juego reiniciado" << std::endl;
+    std::cout << "Juego reiniciado con dificultad: " << dificultad << " (" << FILAS << "x" << COLUMNAS << ", " << MINAS << " minas)" << std::endl;
 }
 
 int main()
@@ -88,6 +114,11 @@ int main()
     textureDetector.loadFromFile("assets/images/detector1.png");
     sf::Texture textureBomba;
     textureBomba.loadFromFile("assets/images/bomba1.png");
+    
+    // Cargar textura de fondo del portada
+    sf::Texture textureBackground;
+    textureBackground.loadFromFile("assets/images/Portada.png");
+    sf::Sprite spriteBackground(textureBackground);
 
     sf::Sprite spriteMarcarFila(textureMarcarFila);
     sf::Sprite spriteAntidoto(textureAntidoto);
@@ -103,6 +134,20 @@ int main()
 
     while (window.isOpen())
     {
+        // Calcular offsets para centrar el tablero (solo en FÁCIL y MEDIO)
+        float boardWidth = COLUMNAS * CELDA_SIZE;
+        float boardHeight = FILAS * CELDA_SIZE;
+        
+        // En DIFÍCIL, no centrar (dejar todo pantalla completa como antes)
+        // En FÁCIL y MEDIO, centrar
+        if (dificultad == 2) {  // DIFÍCIL
+            boardOffsetX = 0.0f;
+            boardOffsetY = 0.0f;
+        } else {  // FÁCIL y MEDIO
+            boardOffsetX = (window.getSize().x - boardWidth) / 2.0f;
+            boardOffsetY = (window.getSize().y - boardHeight) / 2.0f;
+        }
+        
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -112,10 +157,21 @@ int main()
             
             // Manejo de estados del juego
             if (gameState.getCurrentState() == GameState::MENU) {
-                if (gameState.handleMenuInput(event, window)) {
+                if (gameState.handleMenuInput(event, window, showDifficultyMenu)) {
                     if (gameState.getCurrentState() == GameState::PLAYING) {
                         reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, marcarColumnaUsado,
                                       detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
+                        centrarVentana(window);
+                    }
+                } else if (showDifficultyMenu) {
+                    // Si el submenú está abierto, manejar su input
+                    int selectedDifficulty = gameState.handleDifficultyMenuInput(event, window);
+                    if (selectedDifficulty != -1) {
+                        // Configurar parámetros según dificultad seleccionada
+                        dificultad = selectedDifficulty;
+                        // NO cambiar FILAS, COLUMNAS, MINAS aquí - solo guardar la selección
+                        // El cambio efectivo ocurrirá cuando se presione JUGAR
+                        showDifficultyMenu = false;
                     }
                 }
                 continue;
@@ -126,6 +182,7 @@ int main()
                 if (action == 2) { // Restart
                     reiniciarJuego(tablero, enemigo, enemigo2, juegoIniciado, marcarFilaUsado, marcarColumnaUsado,
                                   detectorMinasUsado, paralizanteUsado, escudoGanadorUsado, ultimaCasillaContadaBomba, ultimaCasillaContadaBomba2, tiempoJuego, tiempoEscudoGanador, audio, musicaReproduciendo, musicaMenuReproduciendo);
+                    centrarVentana(window);
                 } else if (action == 3) { // Menu
                     audio.stopMusic("background");
                     audio.playMusic("menu", true);
@@ -162,8 +219,8 @@ int main()
             
             // Manejo de mouse para descubrir o marcar celdas (solo en estado PLAYING)
             if (event.type == sf::Event::MouseButtonPressed) {
-                int x = event.mouseButton.x / CELDA_SIZE;
-                int y = event.mouseButton.y / CELDA_SIZE;
+                int x = (event.mouseButton.x - boardOffsetX) / CELDA_SIZE;
+                int y = (event.mouseButton.y - boardOffsetY) / CELDA_SIZE;
                 if (x >= 0 && x < COLUMNAS && y >= 0 && y < FILAS) {
                     if (!juegoIniciado) {
                         juegoIniciado = true;
@@ -185,7 +242,7 @@ int main()
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::R) {
                     if (!marcarFilaUsado) {
-                        int mouseY = sf::Mouse::getPosition(window).y / CELDA_SIZE;
+                        int mouseY = (sf::Mouse::getPosition(window).y - boardOffsetY) / CELDA_SIZE;
                         if (mouseY >= 0 && mouseY < FILAS) {
                             tablero->marcarFilaDeMinas(mouseY);
                             marcarFilaUsado = true;
@@ -199,7 +256,7 @@ int main()
                 // Poder: Marcar todas las minas de una columna con la tecla C
                 if (event.key.code == sf::Keyboard::C) {
                     if (!marcarColumnaUsado) {
-                        int mouseX = sf::Mouse::getPosition(window).x / CELDA_SIZE;
+                        int mouseX = (sf::Mouse::getPosition(window).x - boardOffsetX) / CELDA_SIZE;
                         if (mouseX >= 0 && mouseX < COLUMNAS) {
                             tablero->marcarColumnaDeMinas(mouseX);
                             marcarColumnaUsado = true;
@@ -250,7 +307,17 @@ int main()
         }
 
         // Limpiar la ventana
-        window.clear(sf::Color::Black);
+        if (gameState.getCurrentState() == GameState::PLAYING) {
+            window.clear(sf::Color::White);
+            // Dibujar background del portada
+            spriteBackground.setScale(
+                static_cast<float>(window.getSize().x) / spriteBackground.getLocalBounds().width,
+                static_cast<float>(window.getSize().y) / spriteBackground.getLocalBounds().height
+            );
+            window.draw(spriteBackground);
+        } else {
+            window.clear(sf::Color::Black);
+        }
         
         // Obtener deltaTime
         float deltaTime = clock.restart().asSeconds();
@@ -293,8 +360,8 @@ int main()
         
         // Obtener posición del mouse en coordenadas de tablero
         sf::Vector2i posMousePixeles = sf::Mouse::getPosition(window);
-        int filaRaton = posMousePixeles.y / CELDA_SIZE;
-        int colRaton = posMousePixeles.x / CELDA_SIZE;
+        int filaRaton = (posMousePixeles.y - boardOffsetY) / CELDA_SIZE;
+        int colRaton = (posMousePixeles.x - boardOffsetX) / CELDA_SIZE;
         
         // Limitar a los límites del tablero
         filaRaton = std::max(0, std::min(filaRaton, FILAS - 1));
@@ -320,13 +387,13 @@ int main()
             // Solo considerar colisión si el escudo NO está activo
             if (tiempoEscudoGanador <= 0.0f) {
                 if (gameState.checkEnemyPlayerCollision(enemigo->getFila(), enemigo->getColumna(), filaRaton, colRaton)) {
-                    razonGameOver = "¡El enemigo te alcanzó!";
+                    razonGameOver = "El enemigo te alcanzo";
                     gameState.setState(GameState::GAME_OVER);
                     audio.playSound("enemy_hit");
                 }
                 // Colisión con segundo enemigo
                 if (gameState.checkEnemyPlayerCollision(enemigo2->getFila(), enemigo2->getColumna(), filaRaton, colRaton)) {
-                    razonGameOver = "¡El enemigo 2 te alcanzó!";
+                    razonGameOver = "El enemigo 2 te alcanzo";
                     gameState.setState(GameState::GAME_OVER);
                     audio.playSound("enemy_hit");
                 }
@@ -343,7 +410,7 @@ int main()
             static float tiempoDebug = 0;
             tiempoDebug += deltaTime;
             if (tiempoDebug >= 1.0f) {
-                std::cout << "Casillas recorridas: " << casillasAhora << ", Última bomba en: " << ultimaCasillaContadaBomba << std::endl;
+                std::cout << "Casillas recorridas: " << casillasAhora << ", Ultima bomba en: " << ultimaCasillaContadaBomba << std::endl;
                 tiempoDebug = 0;
             }
             
@@ -356,9 +423,9 @@ int main()
                 
                 if (estadoCeldas[filaEnemigo][colEnemigo] == 0) {
                     tablero->crearBombaTemporalEnCelda(filaEnemigo, colEnemigo);
-                    std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posición (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
+                    std::cout << "✓ Bomba creada en casilla " << casillasAhora << " en posicion (" << filaEnemigo << ", " << colEnemigo << ")" << std::endl;
                 } else {
-                    std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creó bomba" << std::endl;
+                    std::cout << "✗ Celda revelada en casilla " << casillasAhora << ", no se creo bomba" << std::endl;
                 }
             }
             
@@ -372,9 +439,9 @@ int main()
                 
                 if (estadoCeldas[filaEnemigo2][colEnemigo2] == 0) {
                     tablero->crearBombaTemporalEnCelda(filaEnemigo2, colEnemigo2);
-                    std::cout << "✓ Bomba 2 creada en casilla " << casillasAhora2 << " en posición (" << filaEnemigo2 << ", " << colEnemigo2 << ")" << std::endl;
+                    std::cout << "✓ Bomba 2 creada en casilla " << casillasAhora2 << " en posicion (" << filaEnemigo2 << ", " << colEnemigo2 << ")" << std::endl;
                 } else {
-                    std::cout << "✗ Celda revelada en casilla " << casillasAhora2 << ", no se creó bomba 2" << std::endl;
+                    std::cout << "✗ Celda revelada en casilla " << casillasAhora2 << ", no se creo bomba 2" << std::endl;
                 }
             }
         }
@@ -388,48 +455,49 @@ int main()
                 gameState.setState(GameState::VICTORY);
                 audio.playSound("victory");
             } else {
-                razonGameOver = "¡Pisaste una plaga!";
+                razonGameOver = "Pisaste una plaga!";
                 gameState.setState(GameState::GAME_OVER);
                 audio.playSound("explosion");
             }
         }
         
-        // Dibujar el tablero
-        tablero->dibujar(window, CELDA_SIZE);
+        // Dibujar el tablero centrado
+        tablero->dibujar(window, CELDA_SIZE, boardOffsetX, boardOffsetY);
         
         // Dibujar bombas temporales con efecto visual
         auto posBombas = tablero->obtenerPosicionesBombas();
         for (const auto& bomba : posBombas) {
             sf::Sprite spriteBomba(textureBomba);
-            spriteBomba.setPosition(bomba.second * CELDA_SIZE, bomba.first * CELDA_SIZE);
+            spriteBomba.setPosition(bomba.second * CELDA_SIZE + boardOffsetX, bomba.first * CELDA_SIZE + boardOffsetY);
             spriteBomba.setScale(CELDA_SIZE / spriteBomba.getLocalBounds().width, CELDA_SIZE / spriteBomba.getLocalBounds().height);
             window.draw(spriteBomba);
         }
         
         // Dibujar enemigo (solo si están activos)
         if (enemigosActivos) {
-            enemigo->dibujar(window, CELDA_SIZE);
-            enemigo2->dibujar(window, CELDA_SIZE);  // Segundo enemigo
+            enemigo->dibujar(window, CELDA_SIZE, boardOffsetX, boardOffsetY);
+            enemigo2->dibujar(window, CELDA_SIZE, boardOffsetX, boardOffsetY);  // Segundo enemigo
         }
         
         // Dibujar barra lateral con poderes
-        float boardWidth = COLUMNAS * CELDA_SIZE;
+        // Dibujar barra lateral con poderes (fija en la derecha)
+        float sidebarX = COLUMNAS * CELDA_SIZE + boardOffsetX;
         
         // Fondo de la barra lateral
         sf::RectangleShape sidebar(sf::Vector2f(SIDEBAR_WIDTH, FILAS * CELDA_SIZE));
-        sidebar.setPosition(boardWidth, 0);
+        sidebar.setPosition(sidebarX, boardOffsetY);
         sidebar.setFillColor(sf::Color(50, 50, 50));
         window.draw(sidebar);
         
         // Título "PODERES"
         sf::Text titleText("PODERES", font, 20);
         titleText.setFillColor(sf::Color::White);
-        titleText.setPosition(boardWidth + 20, 20);
+        titleText.setPosition(sidebarX + 20, boardOffsetY + 20);
         window.draw(titleText);
         
         // Poder 1: Marcar fila
         sf::RectangleShape powerButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-        powerButton.setPosition(boardWidth + 10, 80);
+        powerButton.setPosition(sidebarX + 10, boardOffsetY + 80);
         
         if (marcarFilaUsado) {
             powerButton.setFillColor(sf::Color(200, 100, 100));
@@ -443,17 +511,17 @@ int main()
         
         sf::Text powerText("Marcar Fila\n(Presiona R)", font, 14);
         powerText.setFillColor(sf::Color::White);
-        powerText.setPosition(boardWidth + 60, 95); // Movido a la derecha
+        powerText.setPosition(sidebarX + 60, boardOffsetY + 95); // Movido a la derecha
         window.draw(powerText);
 
         // Icono Marcar Fila
-        spriteMarcarFila.setPosition(boardWidth + 15, 85);
+        spriteMarcarFila.setPosition(sidebarX + 15, boardOffsetY + 85);
         spriteMarcarFila.setScale(40.0f / spriteMarcarFila.getLocalBounds().width, 40.0f / spriteMarcarFila.getLocalBounds().height);
         window.draw(spriteMarcarFila);
         
         // Poder 1.5: Marcar columna
         sf::RectangleShape powerButtonCol(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-        powerButtonCol.setPosition(boardWidth + 10, 150); // Ajustar posiciones hacia abajo
+        powerButtonCol.setPosition(sidebarX + 10, boardOffsetY + 150); // Ajustar posiciones hacia abajo
         
         if (marcarColumnaUsado) {
             powerButtonCol.setFillColor(sf::Color(200, 100, 100));
@@ -467,19 +535,19 @@ int main()
         
         sf::Text powerTextCol("Marcar Columna\n(Presiona C)", font, 14);
         powerTextCol.setFillColor(sf::Color::White);
-        powerTextCol.setPosition(boardWidth + 60, 165);
+        powerTextCol.setPosition(sidebarX + 60, boardOffsetY + 165);
         window.draw(powerTextCol);
 
         // Reusar icono Marcar Fila pero rotado si fuera posible, o el mismo
         sf::Sprite spriteMarcarColumna(textureMarcarColumna);
-        spriteMarcarColumna.setPosition(boardWidth + 5, 155);
+        spriteMarcarColumna.setPosition(sidebarX + 5, boardOffsetY + 155);
         spriteMarcarColumna.setScale(55.0f / spriteMarcarColumna.getLocalBounds().width, 55.0f / spriteMarcarColumna.getLocalBounds().height);
         // spriteMarcarColumna.setRotation(90); // Opcional: rotar si se ve bien
         window.draw(spriteMarcarColumna);
         
         // Poder 2: Antídoto
         sf::RectangleShape antidotoButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-        antidotoButton.setPosition(boardWidth + 10, 220); // Desplazado hacia abajo
+        antidotoButton.setPosition(sidebarX + 10, boardOffsetY + 220); // Desplazado hacia abajo
         
         if (!tablero->tieneAntidoto()) {
             antidotoButton.setFillColor(sf::Color(200, 100, 100));
@@ -493,17 +561,17 @@ int main()
         
         sf::Text antidotoText("Antidoto\n(Automatico)", font, 14);
         antidotoText.setFillColor(sf::Color::White);
-        antidotoText.setPosition(boardWidth + 60, 235); // Desplazado
+        antidotoText.setPosition(sidebarX + 60, boardOffsetY + 235); // Desplazado
         window.draw(antidotoText);
 
         // Icono Antidoto
-        spriteAntidoto.setPosition(boardWidth + 5, 222); // Desplazado
+        spriteAntidoto.setPosition(sidebarX + 5, boardOffsetY + 222); // Desplazado
         spriteAntidoto.setScale(55.0f / spriteAntidoto.getLocalBounds().width, 55.0f / spriteAntidoto.getLocalBounds().height);
         window.draw(spriteAntidoto);
         
         // Poder 3: Detector de Minas
         sf::RectangleShape detectorButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-        detectorButton.setPosition(boardWidth + 10, 290); // Desplazado
+        detectorButton.setPosition(sidebarX + 10, boardOffsetY + 290); // Desplazado
         
         if (tablero->getUsosDetectorMinas() <= 0) {
             detectorButton.setFillColor(sf::Color(200, 100, 100));
@@ -518,18 +586,18 @@ int main()
         std::string detectorInfo = "Detector Mina\n(Presiona D)\n(" + std::to_string(tablero->getUsosDetectorMinas()) + " usos)";
         sf::Text detectorText(detectorInfo, font, 12);
         detectorText.setFillColor(sf::Color::White);
-        detectorText.setPosition(boardWidth + 60, 300); // Desplazado
+        detectorText.setPosition(sidebarX + 60, boardOffsetY + 300); // Desplazado
         window.draw(detectorText);
 
         // Icono Detector
-        spriteDetector.setPosition(boardWidth + 15, 295); // Desplazado
+        spriteDetector.setPosition(sidebarX + 15, boardOffsetY + 295); // Desplazado
         spriteDetector.setScale(40.0f / spriteDetector.getLocalBounds().width, 40.0f / spriteDetector.getLocalBounds().height);
         window.draw(spriteDetector);
         
         // Poder 4: Paralizante (solo si enemigos están activos)
         if (enemigosActivos) {
             sf::RectangleShape paralizanteButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-            paralizanteButton.setPosition(boardWidth + 10, 360); // Desplazado
+            paralizanteButton.setPosition(sidebarX + 10, boardOffsetY + 360); // Desplazado
             
             if (paralizanteUsado) {
                 paralizanteButton.setFillColor(sf::Color(200, 100, 100));
@@ -543,14 +611,14 @@ int main()
             
             sf::Text paralizanteText("Paralizante\n(Presiona P)", font, 14);
             paralizanteText.setFillColor(sf::Color::White);
-            paralizanteText.setPosition(boardWidth + 15, 375); // Desplazado
+            paralizanteText.setPosition(sidebarX + 15, boardOffsetY + 375); // Desplazado
             window.draw(paralizanteText);
         }
         
         // Poder 5: Escudo Ganador (solo si enemigos están activos)
         if (enemigosActivos) {
             sf::RectangleShape escudoButton(sf::Vector2f(SIDEBAR_WIDTH - 20, 60));
-            escudoButton.setPosition(boardWidth + 10, 430); // Desplazado
+            escudoButton.setPosition(sidebarX + 10, boardOffsetY + 430); // Desplazado
             
             if (escudoGanadorUsado) {
                 escudoButton.setFillColor(sf::Color(200, 100, 100));
@@ -572,13 +640,13 @@ int main()
             }
             sf::Text escudoText(escudoInfo, font, 12);
             escudoText.setFillColor(sf::Color::White);
-            escudoText.setPosition(boardWidth + 15, 438); // Desplazado
+            escudoText.setPosition(sidebarX + 15, boardOffsetY + 438); // Desplazado
             window.draw(escudoText);
         }
 
         // Contador de Plagas
         sf::RectangleShape counterBox(sf::Vector2f(SIDEBAR_WIDTH - 20, 40));
-        counterBox.setPosition(boardWidth + 10, 580);
+        counterBox.setPosition(sidebarX + 10, boardOffsetY + 580);
         counterBox.setFillColor(sf::Color(50, 50, 50));
         counterBox.setOutlineColor(sf::Color::White);
         counterBox.setOutlineThickness(2);
@@ -587,7 +655,7 @@ int main()
         std::string plagasInfo = "Plagas: " + std::to_string(tablero->getMinasMarcadas()) + " / " + std::to_string(tablero->getMinas());
         sf::Text plagasText(plagasInfo, font, 16);
         plagasText.setFillColor(sf::Color::White);
-        plagasText.setPosition(boardWidth + 20, 590);
+        plagasText.setPosition(sidebarX + 20, boardOffsetY + 590);
         window.draw(plagasText);
                 
         // Dibujar indicador de proximidad si está jugando y enemigos están activos (mostrar el enemigo más cercano)
@@ -599,20 +667,20 @@ int main()
             // Determinar cuál está más cerca
             if (distancia1 <= distancia2) {
                 gameState.drawProximityIndicator(window, enemigo->getFila(), enemigo->getColumna(), 
-                                                filaRaton, colRaton, CELDA_SIZE, font);
+                                                filaRaton, colRaton, CELDA_SIZE, font, boardOffsetX, boardOffsetY, COLUMNAS);
             } else {
                 gameState.drawProximityIndicator(window, enemigo2->getFila(), enemigo2->getColumna(), 
-                                                filaRaton, colRaton, CELDA_SIZE, font);
+                                                filaRaton, colRaton, CELDA_SIZE, font, boardOffsetX, boardOffsetY, COLUMNAS);
             }
         }
         
         // Dibujar pantallas según estado
         if (gameState.getCurrentState() == GameState::MENU) {
-            gameState.drawMenu(window, font);
+            gameState.drawMenu(window, font, static_cast<GameState::Difficulty>(dificultad), showDifficultyMenu);
         } else if (gameState.getCurrentState() == GameState::PAUSED) {
             gameState.drawPause(window, font);
         } else if (gameState.getCurrentState() == GameState::INSTRUCTIONS) {
-            gameState.drawInstructions(window, font);
+            gameState.drawInstructions(window, font, spriteBackground);
         } else if (gameState.getCurrentState() == GameState::GAME_OVER) {
             gameState.drawGameOver(window, font, razonGameOver);
         } else if (gameState.getCurrentState() == GameState::VICTORY) {
@@ -629,3 +697,5 @@ int main()
 
     return 0;
 }
+
+

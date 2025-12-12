@@ -18,7 +18,7 @@ public:
     bool tieneAntidoto() const;
     bool esFinDelJuego() const;
     bool esVictoria() const;
-    void dibujar(sf::RenderWindow& window, float size = 32.0f) const;
+    void dibujar(sf::RenderWindow& window, float size = 32.0f, float offsetX = 0.0f, float offsetY = 0.0f) const;
     int getFilas() const;
     int getColumnas() const;
     int getMinas() const;

@@ -128,12 +128,12 @@ bool Tablero::tieneAntidoto() const {
 bool Tablero::esFinDelJuego() const { return finDelJuego; }
 bool Tablero::esVictoria() const { return victoria; }
 
-void Tablero::dibujar(sf::RenderWindow& window, float size) const {
+void Tablero::dibujar(sf::RenderWindow& window, float size, float offsetX, float offsetY) const {
     sf::Font font;
       font.loadFromFile("assets/fonts/Minecraft.ttf"); // Cambiada a fuente existente
     for (int i = 0; i < filas; ++i) {
         for (int j = 0; j < columnas; ++j) {
-            sf::Vector2f pos(j * size, i * size);
+            sf::Vector2f pos(j * size + offsetX, i * size + offsetY);
             
             if (celdas[i][j].getEstado() == Celda::Marcada) {
                 sf::Sprite spriteBandera(texturaBandera);
@@ -237,7 +237,7 @@ void Tablero::marcarMinaAlAzar() {
         int idx = rand() % minasOcultas.size();
         celdas[minasOcultas[idx].first][minasOcultas[idx].second].setEstado(Celda::Marcada);
         usosDetectorMinas--;
-        std::cout << "Â¡MINA MARCADA! Usos restantes: " << usosDetectorMinas << std::endl;
+        std::cout << "ÂMINA MARCADA! Usos restantes: " << usosDetectorMinas << std::endl;
     }
 }
 
@@ -326,7 +326,7 @@ bool Tablero::activarBombaEnCelda(int fila, int columna) {
             } else {
                 finDelJuego = true;
                 victoria = false;
-                std::cout << "Â¡BOMBA TEMPORAL! GAME OVER" << std::endl;
+                std::cout << "ÂBOMBA TEMPORAL! GAME OVER" << std::endl;
             }
             
             // Remover la bomba despuÃ©s de ser activada
@@ -337,4 +337,5 @@ bool Tablero::activarBombaEnCelda(int fila, int columna) {
     }
     return false;
 }
+
 
